@@ -29,24 +29,20 @@ export function setCustomApiUrl(url: string) {
 
 interface FetchOptions extends RequestInit {
   timeout?: number;
+  retries?: number;
 }
 
 export async function apiClient<T>(
   endpoint: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { timeout = 30000, body, ...customConfig } = options;
+  const { timeout = 35000, retries = 1, body, ...customConfig } = options;
   const baseUrl = getApiBaseUrl();
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-  // Normalize endpoint
   const url = endpoint.startsWith("http")
     ? endpoint
     : `${baseUrl.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`;
 
-  // Only attach Content-Type when there is a request body
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...(customConfig.headers as Record<string, string>),
@@ -56,46 +52,61 @@ export async function apiClient<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  try {
-    const response = await fetch(url, {
-      ...customConfig,
-      body,
-      headers,
-      signal: controller.signal,
-      mode: "cors",
-    });
+  let lastError: any = null;
 
-    clearTimeout(timeoutId);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
+    try {
+      const response = await fetch(url, {
+        ...customConfig,
+        body,
+        headers,
+        signal: controller.signal,
+        mode: "cors",
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // fallback
         }
-      } catch {
-        // fallback
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
-    }
 
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      return (await response.json()) as T;
-    }
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return (await response.json()) as T;
+      }
 
-    return (await response.text()) as unknown as T;
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === "AbortError") {
-      throw new Error(`Request to Render backend (${baseUrl}) timed out. Please allow 30 seconds for Render to wake up if cold-starting.`);
+      return (await response.text()) as unknown as T;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      lastError = error;
+
+      // If we have retries left and it was a cold start network drop, wait 2s and retry
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
     }
-    if (error.message === "Failed to fetch" || error.name === "TypeError") {
-      throw new Error(`Unable to connect to Render backend at ${baseUrl}. Please check if the Render service is active.`);
-    }
-    throw error;
   }
+
+  if (lastError?.name === "AbortError") {
+    throw new Error(`Request to Render backend (${baseUrl}) timed out. Please allow 30 seconds for Render to wake up if cold-starting.`);
+  }
+  if (lastError?.message === "Failed to fetch" || lastError?.name === "TypeError") {
+    throw new Error(`Unable to connect to Render backend at ${baseUrl}. Please check if the Render service is active.`);
+  }
+  throw lastError;
 }
