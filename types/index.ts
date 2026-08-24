@@ -156,3 +156,39 @@ export interface EmailPreview {
 }
 
 export type EmailPreviewData = EmailPreview;
+
+export interface AppSettings {
+  // Candidate Profile
+  candidateName: string;
+  candidateRole: string;
+  candidateExperience: string;
+  candidateEmail: string;
+  candidatePhone?: string;
+  candidateSkills: string[];
+  resumeFilename?: string;
+  resumePath?: string;
+
+  // SMTP Settings
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPass?: string;
+  emailFrom: string;
+
+  // Discovery & Targeting
+  shopifyDirectoryUrl: string;
+  targetCountry: string;
+  targetLeads: number;
+  minAppRelevanceScore: number;
+
+  // Employee Verification
+  minEmployeeCount?: number | null;
+
+  // Safety & Controls
+  dryRun: boolean;
+  sendLimit?: number | null;
+  emailDelayMs: number;
+  batchSize: number;
+  batchDelayMs: number;
+}

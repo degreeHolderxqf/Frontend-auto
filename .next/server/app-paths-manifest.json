@@ -1,11 +1,11 @@
 {
   "/api/proxy/[...path]/route": "app/api/proxy/[...path]/route.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/companies/page": "app/companies/page.js",
   "/discovery/page": "app/discovery/page.js",
-  "/outreach/page": "app/outreach/page.js",
-  "/leads/page": "app/leads/page.js",
   "/exclusions/page": "app/exclusions/page.js",
+  "/leads/page": "app/leads/page.js",
+  "/outreach/page": "app/outreach/page.js",
   "/page": "app/page.js",
-  "/settings/page": "app/settings/page.js",
-  "/companies/page": "app/companies/page.js"
+  "/settings/page": "app/settings/page.js"
 }

@@ -26,7 +26,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/exclusions": {
+    "/discovery": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -39,8 +39,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/exclusions",
-      "dataRoute": "/exclusions.rsc",
+      "srcRoute": "/discovery",
+      "dataRoute": "/discovery.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
@@ -146,7 +146,7 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/discovery": {
+    "/exclusions": {
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -159,8 +159,8 @@
         }
       ],
       "initialRevalidateSeconds": false,
-      "srcRoute": "/discovery",
-      "dataRoute": "/discovery.rsc",
+      "srcRoute": "/exclusions",
+      "dataRoute": "/exclusions.rsc",
       "allowHeader": [
         "host",
         "x-matched-path",
