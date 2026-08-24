@@ -1,28 +1,25 @@
+// Live Render Production Backend URL (Universal)
+export const RENDER_BACKEND_URL = "https://auto-9if9.onrender.com";
+
 export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    // 1. User manual override from Settings page
+    // If a custom URL is stored, ensure it's not localhost
     const saved = localStorage.getItem("CUSTOM_API_URL");
-    if (saved) return saved;
-
-    // 2. If browser is on localhost / 127.0.0.1, use localhost unless NEXT_PUBLIC_API_URL is explicitly set
-    const isLocal =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-
-    if (isLocal) {
-      return process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    if (saved && !saved.includes("localhost") && !saved.includes("127.0.0.1")) {
+      return saved.replace(/\/$/, "");
     }
-
-    // 3. If deployed on Vercel / Remote (e.g. *.vercel.app), ALWAYS default to Render backend
-    return process.env.NEXT_PUBLIC_API_URL || "https://auto-9if9.onrender.com";
+    // Automatically clear any old localhost values
+    if (saved && (saved.includes("localhost") || saved.includes("127.0.0.1"))) {
+      localStorage.removeItem("CUSTOM_API_URL");
+    }
   }
 
-  return process.env.NEXT_PUBLIC_API_URL || "https://auto-9if9.onrender.com";
+  return process.env.NEXT_PUBLIC_API_URL || RENDER_BACKEND_URL;
 }
 
 export function setCustomApiUrl(url: string) {
   if (typeof window !== "undefined") {
-    if (!url) {
+    if (!url || url.includes("localhost") || url.includes("127.0.0.1")) {
       localStorage.removeItem("CUSTOM_API_URL");
     } else {
       localStorage.setItem("CUSTOM_API_URL", url.replace(/\/$/, ""));
@@ -38,7 +35,7 @@ export async function apiClient<T>(
   endpoint: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { timeout = 25000, ...customConfig } = options;
+  const { timeout = 30000, body, ...customConfig } = options;
   const baseUrl = getApiBaseUrl();
 
   const controller = new AbortController();
@@ -49,16 +46,23 @@ export async function apiClient<T>(
     ? endpoint
     : `${baseUrl.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`;
 
-  const headers = {
-    "Content-Type": "application/json",
-    ...customConfig.headers,
+  // Only attach Content-Type when there is a request body
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(customConfig.headers as Record<string, string>),
   };
+
+  if (body) {
+    headers["Content-Type"] = "application/json";
+  }
 
   try {
     const response = await fetch(url, {
       ...customConfig,
+      body,
       headers,
       signal: controller.signal,
+      mode: "cors",
     });
 
     clearTimeout(timeoutId);
@@ -87,10 +91,10 @@ export async function apiClient<T>(
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === "AbortError") {
-      throw new Error(`Request to ${baseUrl} timed out. The backend server might be cold-starting on Render or unreachable.`);
+      throw new Error(`Request to Render backend (${baseUrl}) timed out. Please allow 30 seconds for Render to wake up if cold-starting.`);
     }
     if (error.message === "Failed to fetch" || error.name === "TypeError") {
-      throw new Error(`Failed to connect to backend at ${baseUrl}. Ensure the backend service is running or check Settings.`);
+      throw new Error(`Unable to connect to Render backend at ${baseUrl}. Please check if the Render service is active.`);
     }
     throw error;
   }

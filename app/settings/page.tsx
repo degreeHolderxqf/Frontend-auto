@@ -95,21 +95,14 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Quick Switch Buttons */}
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => handleSaveApiUrl("http://localhost:3000")}
-                className="flex-1 py-1.5 px-2.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 border border-slate-700 transition-colors"
-              >
-                🏠 Localhost (Port 3000)
-              </button>
+            {/* Quick Action */}
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={() => handleSaveApiUrl("https://auto-9if9.onrender.com")}
-                className="flex-1 py-1.5 px-2.5 rounded-md bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 border border-slate-700 transition-colors"
+                className="w-full py-2 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-sky-400 border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
               >
-                ☁️ Render Cloud
+                ☁️ Target: Render Cloud (https://auto-9if9.onrender.com)
               </button>
             </div>
 
