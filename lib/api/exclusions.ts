@@ -1,11 +1,23 @@
 import { apiClient } from "./client";
-import { Exclusion } from "@/types";
+import { Exclusion, ContactedLead } from "@/types";
 
-export async function fetchExclusions(): Promise<Exclusion[]> {
-  const data = await apiClient<{ success: boolean; count: number; exclusions: Exclusion[] }>(
-    "/api/exclusions"
-  );
-  return data.exclusions || [];
+export interface ExclusionsResponse {
+  exclusions: Exclusion[];
+  contacted: ContactedLead[];
+}
+
+export async function fetchExclusions(): Promise<ExclusionsResponse> {
+  const data = await apiClient<{
+    success: boolean;
+    count: number;
+    exclusions: Exclusion[];
+    contacted?: ContactedLead[];
+  }>("/api/exclusions");
+
+  return {
+    exclusions: data.exclusions || [],
+    contacted: data.contacted || [],
+  };
 }
 
 export async function addExclusion(name: string, domain?: string, reason?: string): Promise<any> {

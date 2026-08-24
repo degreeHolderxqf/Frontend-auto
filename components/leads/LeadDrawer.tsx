@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Lead, Contact, Source, EmailLog } from "@/types";
 import { fetchLeadById } from "@/lib/api/leads";
-import { StatusBadge, ConfidenceBadge } from "@/components/ui/Badge";
+import { StatusBadge, ConfidenceBadge, EmployeeVerificationBadge } from "@/components/ui/Badge";
 import { LeadScoreBadge } from "./LeadScoreBadge";
 import {
   Building2,
@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   FileCode,
   Send,
+  Users,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -59,6 +61,11 @@ export function LeadDrawer({ leadId, onClose, onPreviewEmail }: LeadDrawerProps)
   }, [leadId]);
 
   const company = data?.company;
+  const isHeadcountVerified =
+    company?.employee_count_verified === 1 ||
+    company?.employee_count_status === "QUALIFIED" ||
+    (company?.employee_count !== null && company?.employee_count !== undefined && company.employee_count >= 30) ||
+    (company?.employee_count_min !== null && company?.employee_count_min !== undefined && company.employee_count_min >= 30);
 
   return (
     <Drawer
@@ -80,22 +87,28 @@ export function LeadDrawer({ leadId, onClose, onPreviewEmail }: LeadDrawerProps)
           <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <StatusBadge status={company.status} />
+                <StatusBadge status={!isHeadcountVerified && company.status === "READY" ? "NOT_ELIGIBLE" : company.status} />
                 <span className="text-slate-500">•</span>
                 <span className="font-semibold text-slate-200">{company.partner_tier || "Shopify Partner"}</span>
               </div>
               <LeadScoreBadge score={company.lead_score} />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px]">
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/80 text-[11px]">
+              <div>
+                <span className="text-slate-400">Headcount:</span>{" "}
+                <span className="font-bold text-indigo-300">
+                  {company.employee_size_range || (company.employee_count ? `${company.employee_count}+` : "30+")}
+                </span>
+              </div>
               <div>
                 <span className="text-slate-400">App Relevance:</span>{" "}
                 <span className="font-bold text-slate-100">{company.app_relevance_score}/100</span>
               </div>
               <div>
                 <span className="text-slate-400">Location:</span>{" "}
-                <span className="font-semibold text-slate-100">
-                  {company.city ? `${company.city}, ${company.country}` : company.country}
+                <span className="font-semibold text-slate-100 truncate">
+                  {company.city ? `${company.city}` : company.country}
                 </span>
               </div>
             </div>
@@ -141,6 +154,47 @@ export function LeadDrawer({ leadId, onClose, onPreviewEmail }: LeadDrawerProps)
             </div>
           </div>
 
+          {/* Employee Size Verification Card */}
+          <div className="p-4 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                Employee-Size Verification Evidence
+              </h4>
+              <EmployeeVerificationBadge
+                verified={company.employee_count_verified}
+                status={company.employee_count_status}
+                sizeRange={company.employee_size_range}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+              <div>
+                <span className="text-slate-400">Headcount Range:</span>{" "}
+                <span className="font-semibold text-slate-200">{company.employee_size_range || "N/A"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400">Exact / Min Count:</span>{" "}
+                <span className="font-semibold text-slate-200">{company.employee_count || company.employee_count_min || "N/A"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400">Primary Source:</span>{" "}
+                <span className="font-semibold text-slate-200">{company.employee_count_source || "LinkedIn / Website"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400">Threshold Rule:</span>{" "}
+                <span className="font-semibold text-emerald-400">&ge; 30 Employees</span>
+              </div>
+            </div>
+
+            {company.notes && (
+              <div className="p-2.5 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
+                <span className="font-medium text-slate-400">Evidence Note: </span>
+                {company.notes}
+              </div>
+            )}
+          </div>
+
           {/* Contacts Section */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -181,7 +235,7 @@ export function LeadDrawer({ leadId, onClose, onPreviewEmail }: LeadDrawerProps)
                         )}
                       </div>
                     </div>
-                    {onPreviewEmail && (
+                    {onPreviewEmail && isHeadcountVerified && (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -220,6 +274,38 @@ export function LeadDrawer({ leadId, onClose, onPreviewEmail }: LeadDrawerProps)
               )}
             </div>
           </div>
+
+          {/* Discovered Sources Evidence */}
+          {data.sources && data.sources.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold text-slate-100 uppercase tracking-wider mb-2">
+                Public Verification Sources ({data.sources.length})
+              </h4>
+              <div className="space-y-1.5">
+                {data.sources.map((s) => (
+                  <div
+                    key={s.id}
+                    className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-[11px]"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-200">{s.title || s.source_type}</p>
+                      <p className="text-slate-500 text-[10px] truncate max-w-[320px]">{s.evidence || s.url}</p>
+                    </div>
+                    {s.url && (
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-400 hover:text-sky-300 p-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Email History Logs */}
           {data.emailLogs && data.emailLogs.length > 0 && (

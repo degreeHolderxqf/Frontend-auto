@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { LeadStatus, EmailConfidence } from "@/types";
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from "lucide-react";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: "default" | "success" | "warning" | "danger" | "info" | "purple" | "neutral";
@@ -42,6 +43,8 @@ export function StatusBadge({ status }: { status: LeadStatus | string }) {
       return <Badge variant="success">READY</Badge>;
     case "SENT":
       return <Badge variant="purple">SENT</Badge>;
+    case "CONTACTED":
+      return <Badge variant="purple">CONTACTED</Badge>;
     case "EMAIL_FOUND":
       return <Badge variant="info">EMAIL FOUND</Badge>;
     case "DISCOVERED":
@@ -50,6 +53,11 @@ export function StatusBadge({ status }: { status: LeadStatus | string }) {
       return <Badge variant="warning">RESEARCHING</Badge>;
     case "NO_CONTACT":
       return <Badge variant="neutral">NO CONTACT</Badge>;
+    case "REJECTED_HEADCOUNT":
+      return <Badge variant="danger">SIZE &lt; 30</Badge>;
+    case "UNCERTAIN_HEADCOUNT":
+    case "NOT_ELIGIBLE":
+      return <Badge variant="warning">NOT ELIGIBLE</Badge>;
     case "EXCLUDED":
       return <Badge variant="danger">EXCLUDED</Badge>;
     case "FAILED":
@@ -57,6 +65,52 @@ export function StatusBadge({ status }: { status: LeadStatus | string }) {
     default:
       return <Badge variant="default">{status}</Badge>;
   }
+}
+
+export function EmployeeVerificationBadge({
+  verified,
+  status,
+  sizeRange
+}: {
+  verified?: number | boolean | null;
+  status?: string | null;
+  sizeRange?: string | null;
+}) {
+  const isVer = verified === 1 || verified === true || status === "QUALIFIED";
+
+  if (isVer) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/70 border border-emerald-800/60 px-2 py-0.5 rounded-full">
+        <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+        ✓ Verified
+      </span>
+    );
+  }
+
+  if (status === "REJECTED") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-950/70 border border-rose-800/60 px-2 py-0.5 rounded-full">
+        <XCircle className="w-3 h-3 text-rose-400 shrink-0" />
+        ✕ Too low (&lt;30)
+      </span>
+    );
+  }
+
+  if (status === "CONFLICTING") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-950/70 border border-rose-800/60 px-2 py-0.5 rounded-full">
+        <AlertTriangle className="w-3 h-3 text-rose-400 shrink-0" />
+        ⚠ Conflicting
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-950/70 border border-amber-800/60 px-2 py-0.5 rounded-full">
+      <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+      ⚠ Needs verification
+    </span>
+  );
 }
 
 export function ConfidenceBadge({ confidence }: { confidence?: EmailConfidence }) {

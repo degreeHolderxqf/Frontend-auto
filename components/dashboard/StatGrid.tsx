@@ -1,6 +1,6 @@
 import React from "react";
 import { CampaignStats } from "@/types";
-import { Users, MailCheck, Send, ShieldAlert, Sparkles, Building2 } from "lucide-react";
+import { Users, MailCheck, Send, ShieldAlert, Sparkles, Building2, UserCheck, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 interface StatGridProps {
@@ -20,10 +20,10 @@ export function StatGrid({ stats, isLoading }: StatGridProps) {
       bg: "bg-sky-500/10 border-sky-500/20",
     },
     {
-      title: "Qualified Leads",
-      value: stats?.qualified ?? "—",
-      sub: "App Relevance ≥ 70",
-      icon: Sparkles,
+      title: "Employee Size Verified",
+      value: stats?.employeeVerified ?? stats?.qualified ?? "—",
+      sub: "≥ 30 Employees verified",
+      icon: UserCheck,
       color: "text-emerald-400",
       iconColor: "text-emerald-400",
       bg: "bg-emerald-500/10 border-emerald-500/20",
@@ -40,7 +40,7 @@ export function StatGrid({ stats, isLoading }: StatGridProps) {
     {
       title: "Ready for Outreach",
       value: stats?.readyToSend ?? "—",
-      sub: "In sending queue",
+      sub: "Verified & uncontacted",
       icon: Users,
       color: "text-amber-400",
       iconColor: "text-amber-400",
@@ -56,9 +56,9 @@ export function StatGrid({ stats, isLoading }: StatGridProps) {
       bg: "bg-indigo-500/10 border-indigo-500/20",
     },
     {
-      title: "Excluded Companies",
-      value: stats?.excluded ?? "—",
-      sub: "Past history & employers",
+      title: "Excluded / Too Low",
+      value: (stats?.excluded ?? 0) + (stats?.employeeTooLow ?? 0),
+      sub: `${stats?.employeeTooLow ?? 0} < 30 employees, ${stats?.excluded ?? 0} blacklisted`,
       icon: ShieldAlert,
       color: "text-rose-400",
       iconColor: "text-rose-400",

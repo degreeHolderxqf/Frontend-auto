@@ -3,6 +3,10 @@ export interface CampaignStats {
   candidates: number;
   excluded: number;
   duplicates: number;
+  employeeVerified?: number;
+  employeeTooLow?: number;
+  employeeUncertain?: number;
+  employeeConflicting?: number;
   qualified: number;
   totalContacts: number;
   highConfidence: number;
@@ -10,19 +14,26 @@ export interface CampaignStats {
   noContact: number;
   readyToSend: number;
   sent: number;
+  contacted?: number;
   failed: number;
 }
 
 export type LeadStatus =
   | "DISCOVERED"
   | "RESEARCHING"
+  | "RESEARCHED"
   | "EMAIL_FOUND"
   | "READY"
   | "APPROVED"
+  | "ACTIVE"
   | "SENT"
+  | "CONTACTED"
   | "FAILED"
   | "NO_CONTACT"
   | "LOW_RELEVANCE"
+  | "REJECTED_HEADCOUNT"
+  | "UNCERTAIN_HEADCOUNT"
+  | "NOT_ELIGIBLE"
   | "EXCLUDED";
 
 export type EmailConfidence = "HIGH" | "MEDIUM" | "LOW" | "NONE";
@@ -54,6 +65,16 @@ export interface Lead {
   partner_tier: string | null;
   rating: number | null;
   reviews: number;
+  employee_count?: number | null;
+  employee_count_min?: number | null;
+  employee_count_max?: number | null;
+  employee_size_range?: string | null;
+  employee_count_source?: string | null;
+  employee_source?: string | null;
+  employee_count_source_url?: string | null;
+  employee_count_verified?: number | null;
+  employee_count_verified_at?: string | null;
+  employee_count_status?: "QUALIFIED" | "REJECTED" | "UNCERTAIN" | "CONFLICTING" | "UNKNOWN" | "NEED_MORE_VERIFICATION" | string | null;
   app_relevance_score: number;
   lead_score: number;
   shopify_services: string | null;
@@ -91,7 +112,7 @@ export interface EmailLog {
   contact_id: number | null;
   email: string;
   subject: string | null;
-  status: "SENT" | "FAILED" | "SIMULATED";
+  status: "SENT" | "FAILED" | "SIMULATED" | "DRY_RUN_SENT";
   sent_at: string;
   message_id: string | null;
   error: string | null;
@@ -102,11 +123,27 @@ export interface Exclusion {
   company_name: string;
   normalized_name: string;
   domain: string | null;
-  reason: string;
+  reason: string | null;
   created_at: string;
 }
 
-export interface EmailPreviewData {
+export interface ContactedLead {
+  company_id: number;
+  company_name: string;
+  domain: string | null;
+  official_website: string | null;
+  employee_count?: number | null;
+  employee_size_range?: string | null;
+  employee_count_source?: string | null;
+  status: string;
+  sent_email?: string | null;
+  email_subject?: string | null;
+  email_status?: string | null;
+  sent_at?: string | null;
+  message_id?: string | null;
+}
+
+export interface EmailPreview {
   to: string;
   recipientName: string;
   companyName: string;
@@ -118,10 +155,4 @@ export interface EmailPreviewData {
   emailType: string;
 }
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  error?: string;
-  details?: any;
-  data?: T;
-}
+export type EmailPreviewData = EmailPreview;

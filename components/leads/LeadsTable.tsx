@@ -2,9 +2,9 @@
 
 import React from "react";
 import { Lead } from "@/types";
-import { StatusBadge, ConfidenceBadge } from "@/components/ui/Badge";
+import { StatusBadge, ConfidenceBadge, EmployeeVerificationBadge } from "@/components/ui/Badge";
 import { LeadScoreBadge } from "./LeadScoreBadge";
-import { ExternalLink, Mail, Eye, Building2, MapPin } from "lucide-react";
+import { ExternalLink, Mail, Eye, Building2, MapPin, Users, ShieldCheck, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface LeadsTableProps {
@@ -28,9 +28,9 @@ export function LeadsTable({
     return (
       <div className="py-16 text-center bg-slate-900/40 rounded-xl border border-slate-800">
         <Building2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-        <h4 className="text-base font-semibold text-slate-200">No leads found</h4>
+        <h4 className="text-base font-semibold text-slate-200">No active leads found</h4>
         <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-          Try clearing your search filters, or run the Shopify Partner Discovery engine to populate more leads.
+          All active leads shown here meet the strict requirement of verified <strong>employee_count &ge; 30</strong> and uncontacted status. Run discovery to gather more qualified companies.
         </p>
       </div>
     );
@@ -54,18 +54,38 @@ export function LeadsTable({
               </th>
             )}
             <th className="p-3.5">Company</th>
-            <th className="p-3.5">Location</th>
-            <th className="p-3.5">Tier / Services</th>
-            <th className="p-3.5">Contact & Email</th>
-            <th className="p-3.5 text-center">App Score</th>
-            <th className="p-3.5 text-center">Lead Score</th>
-            <th className="p-3.5">Status</th>
+            <th className="p-3.5">Employees / Size</th>
+            <th className="p-3.5">Verification</th>
+            <th className="p-3.5">Source</th>
+            <th className="p-3.5">Email</th>
+            <th className="p-3.5 text-center">Score</th>
+            <th className="p-3.5">Email Status</th>
             <th className="p-3.5 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/60">
           {leads.map((lead) => {
             const isSelected = selectedLeadIds.includes(lead.id);
+            const isHeadcountVerified =
+              lead.employee_count_verified === 1 ||
+              lead.employee_count_status === "QUALIFIED" ||
+              (lead.employee_count !== null && lead.employee_count !== undefined && lead.employee_count >= 30) ||
+              (lead.employee_count_min !== null && lead.employee_count_min !== undefined && lead.employee_count_min >= 30);
+
+            const displaySize =
+              lead.employee_size_range ||
+              (lead.employee_count ? `${lead.employee_count}+` : "30+");
+
+            const displaySource =
+              lead.employee_count_source ||
+              (lead.linkedin_url ? "LinkedIn" : "Website");
+
+            // Calculate display status: Never show READY for unverified leads
+            let displayStatus = lead.status;
+            if (!isHeadcountVerified && lead.status === "READY") {
+              displayStatus = "NOT_ELIGIBLE";
+            }
+
             return (
               <tr
                 key={lead.id}
@@ -85,7 +105,7 @@ export function LeadsTable({
                 )}
 
                 {/* Company Name & Website */}
-                <td className="p-3.5 max-w-[220px]">
+                <td className="p-3.5 max-w-[190px]">
                   <div className="font-semibold text-slate-100 truncate flex items-center gap-1.5">
                     {lead.name}
                   </div>
@@ -95,7 +115,7 @@ export function LeadsTable({
                         href={lead.official_website || `https://${lead.domain}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[140px]"
+                        className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[120px]"
                       >
                         {lead.domain || "Website"}
                         <ExternalLink className="w-2.5 h-2.5 shrink-0" />
@@ -117,31 +137,38 @@ export function LeadsTable({
                   </div>
                 </td>
 
-                {/* Location */}
+                {/* Employees / Company Size */}
                 <td className="p-3.5 whitespace-nowrap">
-                  <div className="flex items-center gap-1 text-slate-400 text-[11px]">
-                    <MapPin className="w-3 h-3 text-slate-500" />
-                    <span>{lead.city ? `${lead.city}, ${lead.country || "India"}` : lead.country || "India"}</span>
+                  <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-300 bg-indigo-950/80 border border-indigo-800/60 px-2 py-0.5 rounded-full">
+                    <Users className="w-3 h-3 text-indigo-400" />
+                    <span>{displaySize}</span>
                   </div>
                 </td>
 
-                {/* Partner Tier & Services */}
-                <td className="p-3.5 max-w-[200px]">
-                  <div className="text-[11px] font-medium text-slate-200 truncate">
-                    {lead.partner_tier || "Shopify Partner"}
+                {/* Employee Verification Badge */}
+                <td className="p-3.5 whitespace-nowrap">
+                  <EmployeeVerificationBadge
+                    verified={lead.employee_count_verified}
+                    status={lead.employee_count_status}
+                    sizeRange={lead.employee_size_range}
+                  />
+                </td>
+
+                {/* Employee Source */}
+                <td className="p-3.5 max-w-[140px]">
+                  <div className="text-[11px] text-slate-300 font-medium truncate flex items-center gap-1">
+                    <Link2 className="w-3 h-3 text-slate-500 shrink-0" />
+                    <span className="truncate">{displaySource}</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                    {lead.shopify_services || "Custom apps, liquid development, theme setup"}
-                  </p>
                 </td>
 
                 {/* Contact Email & Confidence */}
-                <td className="p-3.5">
+                <td className="p-3.5 max-w-[200px]">
                   {lead.email ? (
                     <div>
                       <div className="flex items-center gap-1.5">
                         <Mail className="w-3 h-3 text-sky-400 shrink-0" />
-                        <span className="font-medium text-slate-200 truncate max-w-[180px]">
+                        <span className="font-medium text-slate-200 truncate max-w-[160px]">
                           {lead.email}
                         </span>
                       </div>
@@ -157,46 +184,38 @@ export function LeadsTable({
                   )}
                 </td>
 
-                {/* App Relevance Score */}
-                <td className="p-3.5 text-center">
-                  <span className="font-semibold text-slate-300">
-                    {lead.app_relevance_score}/100
-                  </span>
-                </td>
-
                 {/* Lead Score */}
                 <td className="p-3.5 text-center">
                   <LeadScoreBadge score={lead.lead_score} />
                 </td>
 
-                {/* Status */}
+                {/* Status Badge */}
                 <td className="p-3.5 whitespace-nowrap">
-                  <StatusBadge status={lead.status} />
+                  <StatusBadge status={displayStatus} />
                 </td>
 
                 {/* Actions */}
-                <td className="p-3.5 text-right whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-1.5">
-                    {onPreviewEmail && lead.email && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => onPreviewEmail(lead)}
-                        title="Preview personalized outreach email"
-                      >
-                        <Mail className="w-3.5 h-3.5 text-sky-400" />
-                        <span className="hidden sm:inline">Preview</span>
-                      </Button>
-                    )}
+                <td className="p-3.5 text-right whitespace-nowrap space-x-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onSelectLead(lead)}
+                    className="h-7 text-xs px-2"
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    Details
+                  </Button>
+                  {onPreviewEmail && lead.email && isHeadcountVerified && (
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => onSelectLead(lead)}
-                      title="View all lead details"
+                      variant="primary"
+                      onClick={() => onPreviewEmail(lead)}
+                      className="h-7 text-xs px-2.5"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <Mail className="w-3 h-3 mr-1" />
+                      Email
                     </Button>
-                  </div>
+                  )}
                 </td>
               </tr>
             );
