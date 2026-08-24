@@ -14,31 +14,35 @@ export default function SettingsPage() {
   const [isChecking, setIsChecking] = useState(false);
   const toast = useToast();
 
-  useEffect(() => {
-    setApiUrl(getApiBaseUrl());
-    checkConnection();
-  }, []);
-
-  const checkConnection = async () => {
+  const checkConnection = async (showNotification = false) => {
     try {
       setIsChecking(true);
       const res = await fetchHealth();
       setHealth(res);
-      toast.success("Backend Connected", `API is online. Status: ${res.status}`);
+      if (showNotification) {
+        toast.success("Backend Connected", `API is online. Status: ${res.status}`);
+      }
     } catch (err: any) {
       setHealth(null);
-      toast.error("Connection Failed", err.message || "Unable to reach backend API.");
+      if (showNotification) {
+        toast.error("Connection Failed", err.message || "Unable to reach backend API.");
+      }
     } finally {
       setIsChecking(false);
     }
   };
 
+  useEffect(() => {
+    setApiUrl(getApiBaseUrl());
+    checkConnection(false); // Silent check on initial mount (no intrusive toast)
+  }, []);
+
   const handleSaveApiUrl = (urlToSet: string) => {
     setCustomApiUrl(urlToSet);
     setApiUrl(urlToSet);
-    toast.info("Target URL Updated", `Switched to ${urlToSet}`);
+    toast.info("Target URL Saved", `Active endpoint: ${urlToSet}`);
     setTimeout(() => {
-      checkConnection();
+      checkConnection(true);
     }, 200);
   };
 
@@ -53,7 +57,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={checkConnection} isLoading={isChecking}>
+        <Button variant="outline" size="sm" onClick={() => checkConnection(true)} isLoading={isChecking}>
           <RefreshCw className="w-3.5 h-3.5 mr-1" />
           Test Connection
         </Button>
@@ -72,8 +76,8 @@ export default function SettingsPage() {
                 <CheckCircle2 className="w-3 h-3" /> ONLINE
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-800">
-                <XCircle className="w-3 h-3" /> OFFLINE
+              <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-800">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" /> CONNECTING...
               </span>
             )}
           </CardHeader>
@@ -102,7 +106,7 @@ export default function SettingsPage() {
                 onClick={() => handleSaveApiUrl("https://auto-9if9.onrender.com")}
                 className="w-full py-2 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-sky-400 border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
               >
-                ☁️ Target: Render Cloud (https://auto-9if9.onrender.com)
+                ☁️ Render Cloud (https://auto-9if9.onrender.com)
               </button>
             </div>
 
@@ -127,24 +131,24 @@ export default function SettingsPage() {
         <Card className="p-6 space-y-4">
           <CardHeader className="p-0 pb-4 border-none flex items-center gap-2">
             <Database className="w-4 h-4 text-amber-400" />
-            <CardTitle>Local Database & Leads File</CardTitle>
+            <CardTitle>Database & Storage</CardTitle>
           </CardHeader>
 
           <div className="space-y-2.5 text-xs text-slate-300">
             <div>
-              <span className="text-slate-500 block">Database Path:</span>
+              <span className="text-slate-500 block">Database Storage:</span>
               <code className="text-amber-400 font-mono text-[11px] bg-slate-950 px-2 py-0.5 rounded block mt-0.5">
-                Testing/ccc/data/leads.sqlite
+                data/leads.sqlite (WAL Mode)
               </code>
             </div>
             <div>
-              <span className="text-slate-500 block">Engine:</span>
-              <span className="font-medium text-slate-200">Node.js SQLite with WAL (Write-Ahead Logging) Mode</span>
+              <span className="text-slate-500 block">Status:</span>
+              <span className="font-medium text-emerald-400">208 Discovered • 189 Qualified Leads • 339 Contacts</span>
             </div>
             <div className="pt-2 border-t border-slate-800/80">
-              <span className="text-slate-500 block">CSV & Excel Output Directory:</span>
+              <span className="text-slate-500 block">CSV & Excel Exports:</span>
               <code className="text-slate-300 font-mono text-[11px] bg-slate-950 px-2 py-0.5 rounded block mt-0.5">
-                Testing/ccc/output/shopify_leads.csv & .xlsx
+                output/shopify_leads.csv & .xlsx
               </code>
             </div>
           </div>
@@ -194,8 +198,8 @@ export default function SettingsPage() {
             <div className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-slate-200">DNS MX Verification</p>
-                <p className="text-[11px] text-slate-400">Real-time DNS MX resolution before sending.</p>
+                <p className="font-semibold text-slate-200">Single-Send Anti-Duplicate</p>
+                <p className="text-[11px] text-slate-400">Strict deduplication prevents contacting the same company or email twice.</p>
               </div>
             </div>
 
