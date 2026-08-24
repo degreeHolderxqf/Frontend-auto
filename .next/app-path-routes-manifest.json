@@ -1,10 +1,11 @@
 {
+  "/api/proxy/[...path]/route": "/api/proxy/[...path]",
   "/_not-found/page": "/_not-found",
-  "/companies/page": "/companies",
-  "/exclusions/page": "/exclusions",
   "/discovery/page": "/discovery",
-  "/outreach/page": "/outreach",
-  "/page": "/",
+  "/exclusions/page": "/exclusions",
+  "/companies/page": "/companies",
   "/leads/page": "/leads",
-  "/settings/page": "/settings"
+  "/page": "/",
+  "/settings/page": "/settings",
+  "/outreach/page": "/outreach"
 }

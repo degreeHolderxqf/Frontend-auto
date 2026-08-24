@@ -3,18 +3,19 @@ export const RENDER_BACKEND_URL = "https://auto-9if9.onrender.com";
 
 export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    // If a custom URL is stored, ensure it's not localhost
     const saved = localStorage.getItem("CUSTOM_API_URL");
     if (saved && !saved.includes("localhost") && !saved.includes("127.0.0.1")) {
       return saved.replace(/\/$/, "");
     }
-    // Automatically clear any old localhost values
     if (saved && (saved.includes("localhost") || saved.includes("127.0.0.1"))) {
       localStorage.removeItem("CUSTOM_API_URL");
     }
+
+    // On Vercel / browser: use the Next.js API proxy route for zero CORS/latency issues
+    return "/api/proxy";
   }
 
-  return process.env.NEXT_PUBLIC_API_URL || RENDER_BACKEND_URL;
+  return RENDER_BACKEND_URL;
 }
 
 export function setCustomApiUrl(url: string) {
@@ -36,12 +37,14 @@ export async function apiClient<T>(
   endpoint: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { timeout = 35000, retries = 1, body, ...customConfig } = options;
+  const { timeout = 45000, retries = 1, body, ...customConfig } = options;
   const baseUrl = getApiBaseUrl();
 
-  const url = endpoint.startsWith("http")
-    ? endpoint
-    : `${baseUrl.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`;
+  // Normalize endpoint
+  const cleanEndpoint = endpoint.replace(/^\//, "");
+  let url = baseUrl.startsWith("http")
+    ? `${baseUrl.replace(/\/$/, "")}/${cleanEndpoint}`
+    : `${baseUrl}/${cleanEndpoint}`;
 
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -64,7 +67,6 @@ export async function apiClient<T>(
         body,
         headers,
         signal: controller.signal,
-        mode: "cors",
       });
 
       clearTimeout(timeoutId);
@@ -94,7 +96,13 @@ export async function apiClient<T>(
       clearTimeout(timeoutId);
       lastError = error;
 
-      // If we have retries left and it was a cold start network drop, wait 2s and retry
+      // Fallback from proxy to direct Render URL on retry
+      if (attempt === 0 && url.startsWith("/api/proxy")) {
+        url = `${RENDER_BACKEND_URL}/${cleanEndpoint}`;
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 2000));
         continue;
@@ -103,10 +111,10 @@ export async function apiClient<T>(
   }
 
   if (lastError?.name === "AbortError") {
-    throw new Error(`Request to Render backend (${baseUrl}) timed out. Please allow 30 seconds for Render to wake up if cold-starting.`);
+    throw new Error(`Request timed out. Render backend is warming up (takes ~30-40s on first load).`);
   }
   if (lastError?.message === "Failed to fetch" || lastError?.name === "TypeError") {
-    throw new Error(`Unable to connect to Render backend at ${baseUrl}. Please check if the Render service is active.`);
+    throw new Error(`Unable to connect to Render backend at ${RENDER_BACKEND_URL}.`);
   }
   throw lastError;
 }

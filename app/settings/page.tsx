@@ -2,14 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchHealth } from "@/lib/api/stats";
-import { getApiBaseUrl, setCustomApiUrl } from "@/lib/api/client";
+import { RENDER_BACKEND_URL } from "@/lib/api/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { CheckCircle2, XCircle, RefreshCw, Server, Shield, Mail, Database, Save } from "lucide-react";
+import { CheckCircle2, XCircle, RefreshCw, Server, Shield, Mail, Database } from "lucide-react";
 
 export default function SettingsPage() {
-  const [apiUrl, setApiUrl] = useState("");
   const [health, setHealth] = useState<{ status: string; uptime: number; mode: string } | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const toast = useToast();
@@ -33,18 +32,15 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    setApiUrl(getApiBaseUrl());
-    checkConnection(false); // Silent check on initial mount (no intrusive toast)
-  }, []);
+    checkConnection(false);
 
-  const handleSaveApiUrl = (urlToSet: string) => {
-    setCustomApiUrl(urlToSet);
-    setApiUrl(urlToSet);
-    toast.info("Target URL Saved", `Active endpoint: ${urlToSet}`);
-    setTimeout(() => {
-      checkConnection(true);
-    }, 200);
-  };
+    // Auto-poll every 6 seconds until connected, then every 20 seconds
+    const interval = setInterval(() => {
+      checkConnection(false);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -53,7 +49,7 @@ export default function SettingsPage() {
         <div>
           <h2 className="text-xl font-bold text-slate-100 tracking-tight">System Settings & Backend Configuration</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Backend API target switcher, SMTP health check, database status, and safety limits.
+            Render API connection status, SMTP health check, database status, and safety limits.
           </p>
         </div>
 
@@ -64,12 +60,12 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Backend Connectivity & Switcher Card */}
+        {/* Backend Connectivity Card */}
         <Card className="p-6 space-y-4">
           <CardHeader className="p-0 pb-4 border-none flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-sky-400" />
-              <CardTitle>Backend Server Target</CardTitle>
+              <CardTitle>Render Production Backend</CardTitle>
             </div>
             {health ? (
               <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800">
@@ -84,43 +80,29 @@ export default function SettingsPage() {
 
           <div className="space-y-3 text-xs text-slate-300">
             <div>
-              <label className="text-slate-400 font-semibold block mb-1.5">Active API Base URL:</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={apiUrl}
-                  onChange={(e) => setApiUrl(e.target.value)}
-                  className="flex-1 p-2 rounded-lg bg-slate-950 border border-slate-700 font-mono text-xs text-sky-400 focus:outline-none focus:border-sky-500"
-                />
-                <Button size="sm" variant="primary" onClick={() => handleSaveApiUrl(apiUrl)}>
-                  <Save className="w-3.5 h-3.5 mr-1" />
-                  Save
-                </Button>
+              <label className="text-slate-400 font-semibold block mb-1">Production API URL:</label>
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-700 font-mono text-xs text-sky-400">
+                {RENDER_BACKEND_URL}
               </div>
             </div>
 
-            {/* Quick Action */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => handleSaveApiUrl("https://auto-9if9.onrender.com")}
-                className="w-full py-2 px-3 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-sky-400 border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
-              >
-                ☁️ Render Cloud (https://auto-9if9.onrender.com)
-              </button>
-            </div>
-
-            <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Mode:</span>
+            <div className="pt-2 border-t border-slate-800/80 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Service Status:</span>
+                <span className={`font-semibold ${health ? "text-emerald-400" : "text-amber-400"}`}>
+                  {health ? "● Healthy & Active" : "Waking up / Connecting"}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Sending Mode:</span>
                 <span className="font-semibold text-slate-200">
                   {health?.mode === "DRY_RUN" ? "🧪 Dry Run (Safe Simulation)" : "🚀 Live Send Active"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Uptime:</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Server Uptime:</span>
                 <span className="font-mono text-slate-200">
-                  {health?.uptime ? `${Math.round(health.uptime)} seconds` : "N/A"}
+                  {health?.uptime ? `${Math.round(health.uptime)} seconds` : "Connecting..."}
                 </span>
               </div>
             </div>
