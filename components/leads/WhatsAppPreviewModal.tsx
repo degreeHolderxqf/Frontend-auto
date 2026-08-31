@@ -67,10 +67,16 @@ export function WhatsAppPreviewModal({ lead, isOpen, onClose, onSuccess }: Whats
         if (onSuccess) onSuccess();
         onClose();
       } else {
-        toast.error("Delivery Failed", res.error || "Failed to dispatch WhatsApp message.");
+        // Ensure error is always a string (never [object Object])
+        const errMsg = typeof res.error === "string" ? res.error
+          : res.error ? JSON.stringify(res.error)
+          : "Failed to dispatch WhatsApp message.";
+        toast.error("Delivery Failed", errMsg);
       }
     } catch (err: any) {
-      toast.error("Send Error", err.message || "Failed to send WhatsApp message.");
+      const errMsg = typeof err?.message === "string" ? err.message
+        : err ? String(err) : "Failed to send WhatsApp message.";
+      toast.error("Send Error", errMsg);
     } finally {
       setIsSending(false);
     }

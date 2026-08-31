@@ -82,12 +82,16 @@ export async function apiClient<T>(
         try {
           const errorData = await response.json();
           if (errorData.error) {
-            errorMessage = errorData.error;
+            errorMessage = typeof errorData.error === "string"
+              ? errorData.error
+              : JSON.stringify(errorData.error);
           } else if (errorData.message) {
-            errorMessage = errorData.message;
+            errorMessage = typeof errorData.message === "string"
+              ? errorData.message
+              : JSON.stringify(errorData.message);
           }
         } catch {
-          // fallback
+          // response wasn't JSON - keep HTTP status error message
         }
         throw new Error(errorMessage);
       }
