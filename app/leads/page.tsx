@@ -6,22 +6,28 @@ import { Lead } from "@/types";
 import { LeadsTable } from "@/components/leads/LeadsTable";
 import { LeadDrawer } from "@/components/leads/LeadDrawer";
 import { EmailPreviewModal } from "@/components/email/EmailPreviewModal";
+import { WhatsAppPreviewModal } from "@/components/leads/WhatsAppPreviewModal";
 import { BatchSenderModal } from "@/components/email/BatchSenderModal";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { Search, Download, Send, RefreshCw, FileSpreadsheet, Filter } from "lucide-react";
+import { Search, Download, Send, RefreshCw, FileSpreadsheet, MessageSquare, Phone } from "lucide-react";
+import { sendWhatsAppBatch } from "@/lib/api/whatsapp";
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [whatsAppFilter, setWhatsAppFilter] = useState("ALL"); // ALL, HAS_WHATSAPP, WA_READY, WA_SENT, WA_FAILED
   const [minScore, setMinScore] = useState<number>(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [previewLead, setPreviewLead] = useState<Lead | null>(null);
+  const [previewWhatsAppLead, setPreviewWhatsAppLead] = useState<Lead | null>(null);
   const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isBatchSendingWhatsApp, setIsBatchSendingWhatsApp] = useState(false);
+
   const toast = useToast();
 
   const loadLeads = async () => {
@@ -57,12 +63,39 @@ export default function LeadsPage() {
   };
 
   const handleToggleSelectAll = () => {
-    if (selectedLeadIds.length === leads.length) {
+    if (selectedLeadIds.length === filteredLeads.length) {
       setSelectedLeadIds([]);
     } else {
-      setSelectedLeadIds(leads.map((l) => l.id));
+      setSelectedLeadIds(filteredLeads.map((l) => l.id));
     }
   };
+
+  const handleBatchWhatsApp = async () => {
+    if (selectedLeadIds.length === 0) return;
+    try {
+      setIsBatchSendingWhatsApp(true);
+      const res = await sendWhatsAppBatch(selectedLeadIds);
+      if (res.success) {
+        toast.success("WhatsApp Batch Completed", `Dispatched: ${res.results.sent} sent, ${res.results.failed} failed, ${res.results.skipped} skipped.`);
+        setSelectedLeadIds([]);
+        loadLeads();
+      }
+    } catch (err: any) {
+      toast.error("Batch WhatsApp Error", err.message || "Failed to dispatch batch WhatsApp.");
+    } finally {
+      setIsBatchSendingWhatsApp(false);
+    }
+  };
+
+  // Apply client-side WhatsApp filter
+  const filteredLeads = leads.filter((l) => {
+    const hasPhone = Boolean(l.normalized_phone || l.phone);
+    if (whatsAppFilter === "HAS_WHATSAPP") return hasPhone;
+    if (whatsAppFilter === "WA_READY") return hasPhone && (!l.whatsapp_status || l.whatsapp_status === "READY");
+    if (whatsAppFilter === "WA_SENT") return l.whatsapp_status === "SENT" || l.whatsapp_status === "DRY_RUN_SENT";
+    if (whatsAppFilter === "WA_FAILED") return l.whatsapp_status === "FAILED";
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -71,21 +104,34 @@ export default function LeadsPage() {
         <div>
           <h2 className="text-xl font-bold text-slate-100 tracking-tight">Qualified Shopify Leads</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Verified Indian Shopify Partners with evidence-based HR/hiring contact discovery.
+            Verified Shopify Partners with public email and WhatsApp contact outreach options.
           </p>
         </div>
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
           {selectedLeadIds.length > 0 && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setIsBatchModalOpen(true)}
-            >
-              <Send className="w-3.5 h-3.5 mr-1" />
-              Send Selected ({selectedLeadIds.length})
-            </Button>
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsBatchModalOpen(true)}
+              >
+                <Send className="w-3.5 h-3.5 mr-1" />
+                Email Selected ({selectedLeadIds.length})
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBatchWhatsApp}
+                isLoading={isBatchSendingWhatsApp}
+                className="bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300"
+              >
+                <MessageSquare className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                WhatsApp Selected ({selectedLeadIds.length})
+              </Button>
+            </>
           )}
 
           <a href={getDownloadUrl("csv")} download>
@@ -145,6 +191,19 @@ export default function LeadsPage() {
             ))}
           </div>
 
+          {/* WhatsApp Outreach Filter */}
+          <select
+            value={whatsAppFilter}
+            onChange={(e) => setWhatsAppFilter(e.target.value)}
+            className="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-emerald-400 font-semibold focus:outline-none focus:border-emerald-500 w-full md:w-auto"
+          >
+            <option value="ALL">All Outreach Channels</option>
+            <option value="HAS_WHATSAPP">💬 Has WhatsApp Phone</option>
+            <option value="WA_READY">⚡ WhatsApp Ready</option>
+            <option value="WA_SENT">✓ WhatsApp Sent</option>
+            <option value="WA_FAILED">✕ WhatsApp Failed</option>
+          </select>
+
           {/* Min Score Filter */}
           <select
             value={minScore}
@@ -162,9 +221,10 @@ export default function LeadsPage() {
       {/* Leads Table */}
       <Card className="p-0 border-none bg-transparent">
         <LeadsTable
-          leads={leads}
+          leads={filteredLeads}
           onSelectLead={(lead) => setSelectedLead(lead)}
           onPreviewEmail={(lead) => setPreviewLead(lead)}
+          onPreviewWhatsApp={(lead) => setPreviewWhatsAppLead(lead)}
           selectedLeadIds={selectedLeadIds}
           onToggleSelectLead={handleToggleSelectLead}
           onToggleSelectAll={handleToggleSelectAll}
@@ -183,6 +243,14 @@ export default function LeadsPage() {
         lead={previewLead}
         isOpen={previewLead !== null}
         onClose={() => setPreviewLead(null)}
+        onSuccess={loadLeads}
+      />
+
+      {/* WhatsApp Preview Modal */}
+      <WhatsAppPreviewModal
+        lead={previewWhatsAppLead}
+        isOpen={previewWhatsAppLead !== null}
+        onClose={() => setPreviewWhatsAppLead(null)}
         onSuccess={loadLeads}
       />
 

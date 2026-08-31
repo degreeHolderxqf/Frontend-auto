@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { fetchHealth } from "@/lib/api/stats";
 import { fetchSettings, updateSettings, testSmtpConnection } from "@/lib/api/settings";
+import { testEvolutionApi } from "@/lib/api/whatsapp";
 import { RENDER_BACKEND_URL } from "@/lib/api/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -23,8 +24,10 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  MessageSquare,
   HelpCircle,
-  Sliders
+  Sliders,
+  Zap
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -34,6 +37,8 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingEvolution, setIsTestingEvolution] = useState(false);
+  const [evolutionTestResult, setEvolutionTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
 
@@ -126,6 +131,44 @@ export default function SettingsPage() {
       toast.error("SMTP Test Error", err.message || "Unable to test SMTP connection.");
     } finally {
       setIsTestingSmtp(false);
+    }
+  };
+
+  const handleTestEvolution = async () => {
+    if (!settings) return;
+
+    try {
+      setIsTestingEvolution(true);
+      setEvolutionTestResult(null);
+
+      const evolutionPayload = {
+        evolutionApiUrl: settings.evolutionApiUrl || "https://evolution-api-latest-h0yy.onrender.com",
+        evolutionApiKey: settings.evolutionApiKey,
+        evolutionInstanceName: settings.evolutionInstanceName || "job-search"
+      };
+
+      const res = await testEvolutionApi(evolutionPayload);
+      if (res.success) {
+        setEvolutionTestResult({
+          success: true,
+          message: res.message || `Evolution API connection verified! (Version: ${res.version || "2.x"})`
+        });
+        toast.success("Evolution API Verified", res.message || "Successfully connected to Evolution API.");
+      } else {
+        setEvolutionTestResult({
+          success: false,
+          message: (res as any).error || "Failed to connect to Evolution API."
+        });
+        toast.error("Evolution API Test Failed", (res as any).error || "Failed to reach Evolution API.");
+      }
+    } catch (err: any) {
+      setEvolutionTestResult({
+        success: false,
+        message: err.message || "Network error while testing Evolution API."
+      });
+      toast.error("Evolution API Test Error", err.message || "Unable to test Evolution API connection.");
+    } finally {
+      setIsTestingEvolution(false);
     }
   };
 
@@ -487,7 +530,131 @@ export default function SettingsPage() {
               </div>
             </Card>
 
-            {/* 5. Outreach & Safety Guardrails Card */}
+            {/* 5. Evolution API WhatsApp Settings Card */}
+            <Card className="p-6 space-y-4 lg:col-span-2">
+              <CardHeader className="p-0 pb-3 border-none flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  <CardTitle>Evolution API WhatsApp Configuration</CardTitle>
+                </div>
+                <span className="text-[11px] text-slate-400">Evolution API Gateway (v2.3.7)</span>
+              </CardHeader>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs text-slate-300">
+                <div>
+                  <label className="text-slate-400 font-semibold block mb-1">Evolution API URL:</label>
+                  <input
+                    type="text"
+                    value={settings.evolutionApiUrl || "https://evolution-api-latest-h0yy.onrender.com"}
+                    onChange={(e) => setSettings({ ...settings, evolutionApiUrl: e.target.value })}
+                    placeholder="https://evolution-api-latest-h0yy.onrender.com"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 font-mono focus:border-sky-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-semibold block mb-1">Instance Name:</label>
+                  <input
+                    type="text"
+                    value={settings.evolutionInstanceName || "job-search"}
+                    onChange={(e) => setSettings({ ...settings, evolutionInstanceName: e.target.value })}
+                    placeholder="job-search"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 font-mono focus:border-sky-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-semibold block mb-1">Evolution API Key (Optional):</label>
+                  <input
+                    type="password"
+                    value={settings.evolutionApiKey || ""}
+                    onChange={(e) => setSettings({ ...settings, evolutionApiKey: e.target.value })}
+                    placeholder={settings.evolutionApiKey ? "•••••••• (Leave blank to keep)" : "Enter API Key"}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 font-mono focus:border-sky-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-slate-200 block">WhatsApp Enabled:</span>
+                    <span className="text-[11px] text-slate-400">
+                      {settings.whatsAppEnabled !== false ? "✓ Enabled in UI & Workflows" : "✕ Disabled"}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.whatsAppEnabled !== false}
+                    onChange={(e) => setSettings({ ...settings, whatsAppEnabled: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-slate-200 block">WhatsApp Dry Run:</span>
+                    <span className="text-[11px] text-slate-400">
+                      {settings.whatsAppDryRun !== false ? "🧪 Simulation (No real WhatsApp)" : "🚀 Real WhatsApp Messages"}
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.whatsAppDryRun !== false}
+                    onChange={(e) => setSettings({ ...settings, whatsAppDryRun: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500 cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-semibold block mb-1">Anti-Ban Delay Between WhatsApp (ms):</label>
+                  <input
+                    type="number"
+                    min={5000}
+                    value={settings.whatsAppDelayMs || 15000}
+                    onChange={(e) => setSettings({ ...settings, whatsAppDelayMs: parseInt(e.target.value, 10) || 15000 })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 font-mono focus:border-sky-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Test Evolution API Action & Result Feedback */}
+              <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestEvolution}
+                    isLoading={isTestingEvolution}
+                    className="text-xs h-8 bg-slate-950 hover:bg-slate-900 border-slate-700 text-emerald-300"
+                  >
+                    <Zap className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                    Test Evolution API Connection
+                  </Button>
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    Verifies connection to {settings.evolutionApiUrl || "https://evolution-api-latest-h0yy.onrender.com"}
+                  </span>
+                </div>
+
+                {evolutionTestResult && (
+                  <div
+                    className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 border animate-fade-in ${
+                      evolutionTestResult.success
+                        ? "bg-emerald-950/60 border-emerald-800 text-emerald-300"
+                        : "bg-rose-950/60 border-rose-800 text-rose-300"
+                    }`}
+                  >
+                    {evolutionTestResult.success ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                    )}
+                    <span className="truncate max-w-sm">{evolutionTestResult.message}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* 6. Outreach & Safety Guardrails Card */}
             <Card className="p-6 space-y-4 lg:col-span-2">
               <CardHeader className="p-0 pb-3 border-none flex items-center justify-between">
                 <div className="flex items-center gap-2">

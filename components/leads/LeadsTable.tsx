@@ -4,13 +4,14 @@ import React from "react";
 import { Lead } from "@/types";
 import { StatusBadge, ConfidenceBadge, EmployeeVerificationBadge } from "@/components/ui/Badge";
 import { LeadScoreBadge } from "./LeadScoreBadge";
-import { ExternalLink, Mail, Eye, Building2, MapPin, Users, ShieldCheck, Link2 } from "lucide-react";
+import { ExternalLink, Mail, Eye, Building2, Users, Link2, MessageSquare, Phone } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface LeadsTableProps {
   leads: Lead[];
   onSelectLead: (lead: Lead) => void;
   onPreviewEmail?: (lead: Lead) => void;
+  onPreviewWhatsApp?: (lead: Lead) => void;
   selectedLeadIds?: number[];
   onToggleSelectLead?: (id: number) => void;
   onToggleSelectAll?: () => void;
@@ -20,6 +21,7 @@ export function LeadsTable({
   leads,
   onSelectLead,
   onPreviewEmail,
+  onPreviewWhatsApp,
   selectedLeadIds = [],
   onToggleSelectLead,
   onToggleSelectAll,
@@ -30,7 +32,7 @@ export function LeadsTable({
         <Building2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
         <h4 className="text-base font-semibold text-slate-200">No active leads found</h4>
         <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-          All active leads shown here meet the strict requirement of verified <strong>employee_count &ge; 30</strong> and uncontacted status. Run discovery to gather more qualified companies.
+          All active leads shown here meet the requirement of verified uncontacted status. Run discovery to gather more qualified companies.
         </p>
       </div>
     );
@@ -56,10 +58,11 @@ export function LeadsTable({
             <th className="p-3.5">Company</th>
             <th className="p-3.5">Employees / Size</th>
             <th className="p-3.5">Verification</th>
-            <th className="p-3.5">Source</th>
             <th className="p-3.5">Email</th>
+            <th className="p-3.5">Phone / WhatsApp</th>
             <th className="p-3.5 text-center">Score</th>
             <th className="p-3.5">Email Status</th>
+            <th className="p-3.5">WhatsApp Status</th>
             <th className="p-3.5 text-right">Actions</th>
           </tr>
         </thead>
@@ -80,11 +83,14 @@ export function LeadsTable({
               lead.employee_count_source ||
               (lead.linkedin_url ? "LinkedIn" : "Website");
 
-            // Calculate display status: Never show READY for unverified leads
             let displayStatus = lead.status;
             if (!isHeadcountVerified && lead.status === "READY") {
               displayStatus = "NOT_ELIGIBLE";
             }
+
+            const phone = lead.normalized_phone || lead.phone;
+            const hasWhatsApp = Boolean(phone);
+            const whatsappStatus = lead.whatsapp_status || "READY";
 
             return (
               <tr
@@ -105,7 +111,7 @@ export function LeadsTable({
                 )}
 
                 {/* Company Name & Website */}
-                <td className="p-3.5 max-w-[190px]">
+                <td className="p-3.5 max-w-[170px]">
                   <div className="font-semibold text-slate-100 truncate flex items-center gap-1.5">
                     {lead.name}
                   </div>
@@ -115,7 +121,7 @@ export function LeadsTable({
                         href={lead.official_website || `https://${lead.domain}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[120px]"
+                        className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 truncate max-w-[110px]"
                       >
                         {lead.domain || "Website"}
                         <ExternalLink className="w-2.5 h-2.5 shrink-0" />
@@ -154,21 +160,13 @@ export function LeadsTable({
                   />
                 </td>
 
-                {/* Employee Source */}
-                <td className="p-3.5 max-w-[140px]">
-                  <div className="text-[11px] text-slate-300 font-medium truncate flex items-center gap-1">
-                    <Link2 className="w-3 h-3 text-slate-500 shrink-0" />
-                    <span className="truncate">{displaySource}</span>
-                  </div>
-                </td>
-
-                {/* Contact Email & Confidence */}
-                <td className="p-3.5 max-w-[200px]">
+                {/* Contact Email */}
+                <td className="p-3.5 max-w-[180px]">
                   {lead.email ? (
                     <div>
                       <div className="flex items-center gap-1.5">
                         <Mail className="w-3 h-3 text-sky-400 shrink-0" />
-                        <span className="font-medium text-slate-200 truncate max-w-[160px]">
+                        <span className="font-medium text-slate-200 truncate max-w-[140px]">
                           {lead.email}
                         </span>
                       </div>
@@ -184,14 +182,55 @@ export function LeadsTable({
                   )}
                 </td>
 
+                {/* Phone & WhatsApp Availability */}
+                <td className="p-3.5 max-w-[170px]">
+                  {phone ? (
+                    <div>
+                      <div className="flex items-center gap-1 font-mono text-[11px] text-sky-300">
+                        <Phone className="w-3 h-3 text-sky-400 shrink-0" />
+                        <span className="truncate">{phone}</span>
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-0.5">
+                          <MessageSquare className="w-2.5 h-2.5" /> WhatsApp
+                        </span>
+                        {lead.phone_type && (
+                          <span className="text-[10px] text-slate-500 truncate">{lead.phone_type}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-slate-500 italic">No Phone</span>
+                  )}
+                </td>
+
                 {/* Lead Score */}
                 <td className="p-3.5 text-center">
                   <LeadScoreBadge score={lead.lead_score} />
                 </td>
 
-                {/* Status Badge */}
+                {/* Email Status */}
                 <td className="p-3.5 whitespace-nowrap">
                   <StatusBadge status={displayStatus} />
+                </td>
+
+                {/* WhatsApp Status */}
+                <td className="p-3.5 whitespace-nowrap">
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                      whatsappStatus === "SENT"
+                        ? "bg-emerald-950 text-emerald-300 border-emerald-800"
+                        : whatsappStatus === "REPLIED"
+                        ? "bg-sky-950 text-sky-300 border-sky-800"
+                        : whatsappStatus === "FAILED"
+                        ? "bg-rose-950 text-rose-300 border-rose-800"
+                        : whatsappStatus === "OPTED_OUT"
+                        ? "bg-amber-950 text-amber-300 border-amber-800"
+                        : "bg-slate-900 text-slate-400 border-slate-800"
+                    }`}
+                  >
+                    {whatsappStatus}
+                  </span>
                 </td>
 
                 {/* Actions */}
@@ -205,15 +244,28 @@ export function LeadsTable({
                     <Eye className="w-3 h-3 mr-1" />
                     Details
                   </Button>
-                  {onPreviewEmail && lead.email && isHeadcountVerified && (
+
+                  {onPreviewEmail && lead.email && (
                     <Button
                       size="sm"
                       variant="primary"
                       onClick={() => onPreviewEmail(lead)}
-                      className="h-7 text-xs px-2.5"
+                      className="h-7 text-xs px-2"
                     >
                       <Mail className="w-3 h-3 mr-1" />
                       Email
+                    </Button>
+                  )}
+
+                  {onPreviewWhatsApp && phone && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onPreviewWhatsApp(lead)}
+                      className="h-7 text-xs px-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300"
+                    >
+                      <MessageSquare className="w-3 h-3 mr-1" />
+                      WhatsApp
                     </Button>
                   )}
                 </td>

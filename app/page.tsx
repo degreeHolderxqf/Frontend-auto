@@ -7,9 +7,11 @@ import { CampaignStats, Lead } from "@/types";
 import { StatGrid } from "@/components/dashboard/StatGrid";
 import { PipelineStatus } from "@/components/dashboard/PipelineStatus";
 import { QuickActions } from "@/components/dashboard/QuickActions";
+import { WhatsAppWidget } from "@/components/dashboard/WhatsAppWidget";
 import { LeadsTable } from "@/components/leads/LeadsTable";
 import { LeadDrawer } from "@/components/leads/LeadDrawer";
 import { EmailPreviewModal } from "@/components/email/EmailPreviewModal";
+import { WhatsAppPreviewModal } from "@/components/leads/WhatsAppPreviewModal";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -22,6 +24,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [previewLead, setPreviewLead] = useState<Lead | null>(null);
+  const [previewWhatsAppLead, setPreviewWhatsAppLead] = useState<Lead | null>(null);
   const toast = useToast();
 
   const loadData = async () => {
@@ -51,7 +54,7 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-xl font-bold text-slate-100 tracking-tight">Campaign Overview</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Automated Indian Shopify Partner discovery, evidence-based contact research, and job outreach.
+            Automated Indian Shopify Partner discovery, evidence-based contact research, and job outreach via Email &amp; WhatsApp.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -70,8 +73,11 @@ export default function DashboardPage() {
       {/* Metrics Grid */}
       <StatGrid stats={stats} isLoading={isLoading} />
 
-      {/* Quick Action Triggers */}
-      <QuickActions onRefresh={loadData} />
+      {/* WhatsApp Connection Widget + Quick Action Triggers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <WhatsAppWidget />
+        <QuickActions onRefresh={loadData} />
+      </div>
 
       {/* Pipeline Status */}
       <PipelineStatus stats={stats} />
@@ -97,6 +103,7 @@ export default function DashboardPage() {
           leads={topLeads}
           onSelectLead={(lead) => setSelectedLead(lead)}
           onPreviewEmail={(lead) => setPreviewLead(lead)}
+          onPreviewWhatsApp={(lead) => setPreviewWhatsAppLead(lead)}
         />
       </Card>
 
@@ -112,6 +119,14 @@ export default function DashboardPage() {
         lead={previewLead}
         isOpen={previewLead !== null}
         onClose={() => setPreviewLead(null)}
+        onSuccess={loadData}
+      />
+
+      {/* WhatsApp Preview Modal */}
+      <WhatsAppPreviewModal
+        lead={previewWhatsAppLead}
+        isOpen={previewWhatsAppLead !== null}
+        onClose={() => setPreviewWhatsAppLead(null)}
         onSuccess={loadData}
       />
     </div>

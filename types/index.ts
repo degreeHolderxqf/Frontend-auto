@@ -37,6 +37,7 @@ export type LeadStatus =
   | "EXCLUDED";
 
 export type EmailConfidence = "HIGH" | "MEDIUM" | "LOW" | "NONE";
+export type WhatsAppStatus = "READY" | "SENT" | "FAILED" | "REPLIED" | "OPTED_OUT" | "DRY_RUN_SENT";
 
 export interface Contact {
   id: number;
@@ -47,6 +48,13 @@ export interface Contact {
   email_type: string;
   confidence: EmailConfidence;
   source_url: string | null;
+  phone?: string | null;
+  normalized_phone?: string | null;
+  phone_type?: string | null;
+  phone_source?: string | null;
+  phone_source_url?: string | null;
+  whatsapp_available?: "yes" | "no" | "unknown" | string | null;
+  whatsapp_status?: WhatsAppStatus | string | null;
   verified: number;
   mx_valid: number;
   notes?: string | null;
@@ -86,6 +94,15 @@ export interface Lead {
   created_at?: string;
   updated_at?: string;
 
+  // Phone & WhatsApp Details
+  phone?: string | null;
+  normalized_phone?: string | null;
+  phone_type?: string | null;
+  phone_source?: string | null;
+  phone_source_url?: string | null;
+  whatsapp_available?: "yes" | "no" | "unknown" | string | null;
+  whatsapp_status?: WhatsAppStatus | string | null;
+
   // Best Contact Joined
   contact_id?: number | null;
   contact_name?: string | null;
@@ -116,6 +133,21 @@ export interface EmailLog {
   sent_at: string;
   message_id: string | null;
   error: string | null;
+}
+
+export interface WhatsAppLog {
+  id: number;
+  company_id: number;
+  company_name?: string;
+  domain?: string;
+  contact_id?: number | null;
+  contact_name?: string | null;
+  phone: string;
+  message: string;
+  status: WhatsAppStatus | string;
+  message_id?: string | null;
+  error?: string | null;
+  sent_at: string;
 }
 
 export interface Exclusion {
@@ -155,6 +187,25 @@ export interface EmailPreview {
   emailType: string;
 }
 
+export interface WhatsAppPreview {
+  recipientName: string;
+  companyName: string;
+  phone: string | null;
+  text: string;
+}
+
+export interface WhatsAppConnectionStatus {
+  online: boolean;
+  version?: string;
+  connected: boolean;
+  state: "CONNECTED" | "OPEN" | "CONNECTING" | "DISCONNECTED" | "CLOSE" | string;
+  apiUrl: string;
+  instanceName: string;
+  enabled: boolean;
+  dryRun: boolean;
+  delayMs: number;
+}
+
 export type EmailPreviewData = EmailPreview;
 
 export interface AppSettings {
@@ -191,4 +242,12 @@ export interface AppSettings {
   emailDelayMs: number;
   batchSize: number;
   batchDelayMs: number;
+
+  // Evolution Go WhatsApp Settings
+  evolutionApiUrl?: string;
+  evolutionApiKey?: string;
+  evolutionInstanceName?: string;
+  whatsAppEnabled?: boolean;
+  whatsAppDryRun?: boolean;
+  whatsAppDelayMs?: number;
 }

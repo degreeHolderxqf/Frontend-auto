@@ -3,6 +3,12 @@ export const RENDER_BACKEND_URL = "https://auto-9if9.onrender.com";
 
 export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
+    // Check for environment variable override
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl) {
+      return envUrl.replace(/\/$/, "");
+    }
+
     const saved = localStorage.getItem("CUSTOM_API_URL");
     if (saved && !saved.includes("localhost") && !saved.includes("127.0.0.1")) {
       return saved.replace(/\/$/, "");
