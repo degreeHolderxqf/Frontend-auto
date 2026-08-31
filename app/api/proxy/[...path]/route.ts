@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const RENDER_BACKEND_URL = "https://auto-9if9.onrender.com";
+const RENDER_BACKEND_URL = "https://auto-1-66jv.onrender.com";
 
 export async function GET(
   request: NextRequest,

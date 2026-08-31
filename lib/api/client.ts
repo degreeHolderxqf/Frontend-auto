@@ -1,5 +1,5 @@
 // Live Render Production Backend URL (Universal)
-export const RENDER_BACKEND_URL = "https://auto-9if9.onrender.com";
+export const RENDER_BACKEND_URL = "https://auto-1-66jv.onrender.com";
 
 export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {

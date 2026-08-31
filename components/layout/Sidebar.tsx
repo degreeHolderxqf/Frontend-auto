@@ -29,7 +29,7 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [baseUrl, setBaseUrl] = useState("https://auto-9if9.onrender.com");
+  const [baseUrl, setBaseUrl] = useState("https://auto-1-66jv.onrender.com");
 
   useEffect(() => {
     setBaseUrl(getApiBaseUrl());
