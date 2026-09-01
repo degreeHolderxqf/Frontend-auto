@@ -17,8 +17,24 @@ export async function updateSettings(
 
 export async function testSmtpConnection(
   smtpConfig: Partial<AppSettings>
-): Promise<{ success: boolean; message?: string; error?: string }> {
-  return apiClient<{ success: boolean; message?: string; error?: string }>("/api/settings/test-smtp", {
+): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+  code?: string;
+  stage?: string;
+  host?: string;
+  port?: number;
+}> {
+  return apiClient<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    code?: string;
+    stage?: string;
+    host?: string;
+    port?: number;
+  }>("/api/settings/test-smtp", {
     method: "POST",
     body: JSON.stringify(smtpConfig)
   });

@@ -36,7 +36,7 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
-  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string; code?: string } | null>(null);
   const [isTestingEvolution, setIsTestingEvolution] = useState(false);
   const [evolutionTestResult, setEvolutionTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -94,6 +94,79 @@ export default function SettingsPage() {
     }
   };
 
+  const classifySmtpError = (code?: string | null): string => {
+    if (!code) return "SMTP_ERROR";
+    const upper = code.toUpperCase().replace(/_/g, "");
+
+    // Network timeout
+    if (
+      upper.includes("TIMEOUT") ||
+      upper.includes("ETIMEDOUT") ||
+      upper.includes("ECONNREFUSED") ||
+      upper.includes("ECONNRESET") ||
+      upper.includes("EHOSTUNREACH") ||
+      upper.includes("ENOTFOUND") ||
+      upper.includes("EHOST") ||
+      upper.includes("DNS")
+    ) {
+      return "NETWORK_TIMEOUT";
+    }
+
+    // Auth failed
+    if (
+      upper.includes("AUTH") ||
+      upper.includes("EAUTH") ||
+      upper.includes("535") ||
+      upper.includes("AUTHFAILED")
+    ) {
+      return "SMTP_AUTH_FAILED";
+    }
+
+    // TLS error
+    if (upper.includes("TLS") || upper.includes("SSL") || upper.includes("ENOTFOUND")) {
+      return "TLS_ERROR";
+    }
+
+    // Server error
+    if (upper.includes("5") || upper.includes("500") || upper.includes("502") || upper.includes("503") || upper.includes("504")) {
+      return "SMTP_SERVER_ERROR";
+    }
+
+    // Rejected
+    if (upper.includes("4") || upper.includes("400") || upper.includes("421") || upper.includes("450") || upper.includes("451") || upper.includes("452") || upper.includes("453") || upper.includes("454")) {
+      return "SMTP_REJECTED";
+    }
+
+    return "SMTP_ERROR";
+  };
+
+  const getSmtpErrorMessage = (code?: string | null, data?: { host?: string; port?: number; message?: string }): string => {
+    const category = classifySmtpError(code);
+
+    switch (category) {
+      case "NETWORK_TIMEOUT": {
+        const host = data?.host || "smtp server";
+        const port = data?.port || 587;
+        return `SMTP ${host}:${port} connection timed out. Render may be blocking outbound traffic.`;
+      }
+      case "SMTP_AUTH_FAILED": {
+        return "SMTP authentication failed. Check Gmail App Password and enable 2-Step Verification.";
+      }
+      case "TLS_ERROR": {
+        return "SMTP TLS/SSL handshake failed. Check port 587 (STARTTLS) vs 465 (SSL) and secure flag.";
+      }
+      case "SMTP_SERVER_ERROR": {
+        return data?.message || "SMTP server returned an error. Try again later.";
+      }
+      case "SMTP_REJECTED": {
+        return data?.message || "SMTP connection was rejected by the server.";
+      }
+      default: {
+        return data?.message || "Unknown SMTP error.";
+      }
+    }
+  };
+
   const handleTestSmtp = async () => {
     if (!settings) return;
 
@@ -113,20 +186,28 @@ export default function SettingsPage() {
       if (res.success) {
         setSmtpTestResult({
           success: true,
-          message: res.message || "SMTP connection verified successfully! Authentication is valid."
+          message: res.message || "SMTP connection verified successfully! Authentication is valid.",
+          code: "SMTP_READY"
         });
         toast.success("SMTP Connection Verified", "Successfully connected and authenticated with mail server.");
       } else {
+        const errorMsg = getSmtpErrorMessage(res.code, {
+          host: res.host,
+          port: res.port,
+          message: res.error
+        });
         setSmtpTestResult({
           success: false,
-          message: res.error || "SMTP authentication failed. Please check host, username, and app password."
+          message: errorMsg,
+          code: res.code
         });
-        toast.error("SMTP Test Failed", res.error || "Failed to authenticate with mail server.");
+        toast.error("SMTP Test Failed", errorMsg);
       }
     } catch (err: any) {
       setSmtpTestResult({
         success: false,
-        message: err.message || "Network error while testing SMTP."
+        message: err.message || "Network error while testing SMTP.",
+        code: "NETWORK_TIMEOUT"
       });
       toast.error("SMTP Test Error", err.message || "Unable to test SMTP connection.");
     } finally {
@@ -332,7 +413,17 @@ export default function SettingsPage() {
                   )}
                   <div>
                     <span className="font-semibold block">
-                      {smtpTestResult.success ? "Connection Verified" : "Authentication Failed"}
+                      {smtpTestResult.success
+                        ? "SMTP Connected"
+                        : smtpTestResult.code === "NETWORK_TIMEOUT"
+                        ? "Connection Timeout"
+                        : smtpTestResult.code === "SMTP_AUTH_FAILED"
+                        ? "Authentication Failed"
+                        : smtpTestResult.code === "TLS_ERROR"
+                        ? "TLS/SSL Error"
+                        : smtpTestResult.code === "MISSING_CREDENTIALS"
+                        ? "Missing Credentials"
+                        : "SMTP Error"}
                     </span>
                     <span className="text-[11px] opacity-90">{smtpTestResult.message}</span>
                   </div>
