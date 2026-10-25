@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchLeads, getDownloadUrl } from "@/lib/api/leads";
+import { fetchLeads, getDownloadUrl, refreshCompanyRevenue } from "@/lib/api/leads";
 import { Lead } from "@/types";
 import { LeadsTable } from "@/components/leads/LeadsTable";
 import { LeadDrawer } from "@/components/leads/LeadDrawer";
@@ -19,6 +19,7 @@ export default function LeadsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sourceFilter, setSourceFilter] = useState("ALL"); // ALL, SHOPIFY_PARTNER_DIRECTORY, SHOPIFY_APP_STORE
   const [whatsAppFilter, setWhatsAppFilter] = useState("ALL"); // ALL, HAS_WHATSAPP, WA_READY, WA_SENT, WA_FAILED
   const [minScore, setMinScore] = useState<number>(0);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -27,8 +28,23 @@ export default function LeadsPage() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<number[]>([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isBatchSendingWhatsApp, setIsBatchSendingWhatsApp] = useState(false);
+  const [refreshingRevenueId, setRefreshingRevenueId] = useState<number | null>(null);
 
   const toast = useToast();
+
+  const refreshLeadRevenue = async (lead: Lead) => {
+    setRefreshingRevenueId(lead.id);
+    try {
+      await refreshCompanyRevenue(lead.id);
+      // Refresh the leads data to pick up the new revenue estimate
+      await loadLeads();
+      toast.success("Revenue estimate updated", "Revenue estimate refreshed successfully");
+    } catch (err: any) {
+      toast.error("Revenue refresh failed", err.message || "Failed to refresh revenue estimate");
+    } finally {
+      setRefreshingRevenueId(null);
+    }
+  };
 
   const loadLeads = async () => {
     try {
@@ -36,6 +52,7 @@ export default function LeadsPage() {
       const data = await fetchLeads({
         limit: "all",
         status: statusFilter !== "ALL" ? statusFilter : undefined,
+        source: sourceFilter !== "ALL" ? sourceFilter : undefined,
         minScore: minScore > 0 ? minScore : undefined,
         search: search.trim() || undefined,
       });
@@ -76,7 +93,8 @@ export default function LeadsPage() {
       setIsBatchSendingWhatsApp(true);
       const res = await sendWhatsAppBatch(selectedLeadIds);
       if (res.success) {
-        toast.success("WhatsApp Batch Completed", `Dispatched: ${res.results.sent} sent, ${res.results.failed} failed, ${res.results.skipped} skipped.`);
+        const target = res.results.templateTarget ? ` using ${res.results.templateTarget}` : "";
+        toast.success("WhatsApp Batch Completed", `Dispatched${target}: ${res.results.sent} sent, ${res.results.failed} failed, ${res.results.skipped} skipped.`);
         setSelectedLeadIds([]);
         loadLeads();
       }
@@ -204,6 +222,17 @@ export default function LeadsPage() {
             <option value="WA_FAILED">✕ WhatsApp Failed</option>
           </select>
 
+          {/* Source Filter */}
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            className="p-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-purple-400 font-semibold focus:outline-none focus:border-purple-500 w-full md:w-auto"
+          >
+            <option value="ALL">All Sources</option>
+            <option value="SHOPIFY_APP_STORE">🛍 App Store</option>
+            <option value="SHOPIFY_PARTNER_DIRECTORY">🏢 Partner Directory</option>
+          </select>
+
           {/* Min Score Filter */}
           <select
             value={minScore}
@@ -225,6 +254,8 @@ export default function LeadsPage() {
           onSelectLead={(lead) => setSelectedLead(lead)}
           onPreviewEmail={(lead) => setPreviewLead(lead)}
           onPreviewWhatsApp={(lead) => setPreviewWhatsAppLead(lead)}
+          onRefreshRevenue={refreshLeadRevenue}
+          refreshingRevenueId={refreshingRevenueId}
           selectedLeadIds={selectedLeadIds}
           onToggleSelectLead={handleToggleSelectLead}
           onToggleSelectAll={handleToggleSelectAll}

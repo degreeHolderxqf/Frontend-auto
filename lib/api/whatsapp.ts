@@ -1,5 +1,6 @@
 import { apiClient } from "./client";
 import { WhatsAppConnectionStatus, WhatsAppPreview, WhatsAppLog } from "@/types";
+import type { EmailTemplateId } from "./templates";
 
 export async function fetchWhatsAppStatus(): Promise<WhatsAppConnectionStatus> {
   return apiClient<WhatsAppConnectionStatus>("/api/whatsapp/status");
@@ -26,21 +27,22 @@ export async function fetchWhatsAppPreview(leadId: number): Promise<WhatsAppPrev
 export async function sendWhatsAppMessage(
   leadId: number,
   phone?: string,
-  message?: string
+  message?: string,
+  templateId?: EmailTemplateId
 ): Promise<{ success: boolean; dryRun?: boolean; messageId?: string; message?: string; error?: string }> {
   return apiClient<{ success: boolean; dryRun?: boolean; messageId?: string; message?: string; error?: string }>(
     "/api/whatsapp/send",
     {
       method: "POST",
-      body: JSON.stringify({ leadId, phone, message })
+      body: JSON.stringify({ leadId, phone, message, templateId })
     }
   );
 }
 
 export async function sendWhatsAppBatch(
   leadIds: number[]
-): Promise<{ success: boolean; results: { total: number; sent: number; failed: number; skipped: number } }> {
-  return apiClient<{ success: boolean; results: { total: number; sent: number; failed: number; skipped: number } }>(
+): Promise<{ success: boolean; results: { total: number; sent: number; failed: number; skipped: number; templateId?: EmailTemplateId; templateTarget?: string } }> {
+  return apiClient<{ success: boolean; results: { total: number; sent: number; failed: number; skipped: number; templateId?: EmailTemplateId; templateTarget?: string } }>(
     "/api/whatsapp/send-batch",
     {
       method: "POST",

@@ -13,6 +13,8 @@ import {
   Settings,
   Flame,
   FileSpreadsheet,
+  Briefcase,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/api/client";
@@ -21,15 +23,20 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Qualified Leads", href: "/leads", icon: Users },
   { label: "Email Outreach", href: "/outreach", icon: Send },
+  { label: "Email Templates", href: "/templates", icon: FileText },
   { label: "Partner Discovery", href: "/discovery", icon: Compass },
   { label: "All Companies", href: "/companies", icon: Building2 },
   { label: "Exclusions", href: "/exclusions", icon: ShieldBan },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+const REMOTE_JOB_ITEMS = [
+  { label: "Remote Jobs", href: "/remote-jobs", icon: Briefcase },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
-  const [baseUrl, setBaseUrl] = useState("https://auto-1-66jv.onrender.com");
+  const [baseUrl, setBaseUrl] = useState("https://auto-rho-peach.vercel.app");
 
   useEffect(() => {
     setBaseUrl(getApiBaseUrl());
@@ -54,6 +61,34 @@ export function Sidebar() {
           Main Menu
         </div>
         {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group",
+                isActive
+                  ? "bg-sky-500/10 text-sky-400 font-semibold border border-sky-500/20 shadow-xs"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/80"
+              )}
+            >
+              <Icon
+                className={cn(
+                  "w-4 h-4 transition-colors",
+                  isActive ? "text-sky-400" : "text-slate-400 group-hover:text-slate-300"
+                )}
+              />
+              {item.label}
+            </Link>
+          );
+        })}
+
+        <div className="pt-4 pb-2 px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+          Remote Jobs
+        </div>
+        {REMOTE_JOB_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (

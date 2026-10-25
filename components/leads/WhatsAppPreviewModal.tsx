@@ -6,7 +6,7 @@ import { Lead, WhatsAppPreview } from "@/types";
 import { fetchWhatsAppPreview, sendWhatsAppMessage } from "@/lib/api/whatsapp";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { MessageSquare, Send, CheckCircle2, Phone, AlertCircle } from "lucide-react";
+import { MessageSquare, Send, Phone, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 interface WhatsAppPreviewModalProps {
@@ -14,6 +14,62 @@ interface WhatsAppPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+}
+
+function normalizeErrorMessage(value: unknown): string {
+  if (value == null) return "Failed to send WhatsApp message.";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "Failed to send WhatsApp message.";
+    if (trimmed === "[object Object]") return "Failed to send WhatsApp message.";
+    return trimmed;
+  }
+  if (value instanceof Error) return value.message || "Failed to send WhatsApp message.";
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((entry) => normalizeErrorMessage(entry))
+      .filter((part) => part && part !== "Failed to send WhatsApp message.");
+    if (parts.length > 0) return parts.join("; ");
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    // Special-case Evolution API's "exists: false" probe response shape:
+    // { response: { message: [{ number, jid, exists }] } }
+    const response = record.response as Record<string, unknown> | undefined;
+    const responseMessage = response && typeof response === "object" ? response.message : undefined;
+    if (Array.isArray(responseMessage) && responseMessage.length > 0) {
+      const parts = responseMessage
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return String(entry ?? "");
+          const item = entry as Record<string, unknown>;
+          const number = (item.number as string) || (item.jid as string) || "number";
+          if (item.exists === false) return `${number} is not a registered WhatsApp number`;
+          if (item.exists === true) return `${number} is a valid WhatsApp number`;
+          if (typeof item.message === "string") return `${number}: ${item.message}`;
+          return "";
+        })
+        .filter(Boolean);
+      if (parts.length > 0) return parts.join("; ");
+    }
+
+    // Walk the object in priority order looking for the first useful string.
+    const candidateKeys = ["message", "error", "details", "reason", "description", "statusText"];
+    for (const key of candidateKeys) {
+      const candidate = record[key];
+      if (candidate === undefined || candidate === null) continue;
+      const nested = normalizeErrorMessage(candidate);
+      if (nested && nested !== "Failed to send WhatsApp message.") return nested;
+    }
+
+    try {
+      const json = JSON.stringify(value);
+      if (json && json !== "{}" && json !== "[]") return json;
+    } catch {
+      // fall through
+    }
+  }
+  return "Failed to send WhatsApp message.";
 }
 
 export function WhatsAppPreviewModal({ lead, isOpen, onClose, onSuccess }: WhatsAppPreviewModalProps) {
@@ -57,8 +113,8 @@ export function WhatsAppPreviewModal({ lead, isOpen, onClose, onSuccess }: Whats
 
     try {
       setIsSending(true);
-      const res = await sendWhatsAppMessage(lead.id, customPhone.trim(), customText.trim());
-      if (res.success) {
+      const res = await sendWhatsAppMessage(lead.id, customPhone.trim(), customText.trim(), preview?.templateId);
+      if (res && res.success) {
         if (res.dryRun) {
           toast.info("Simulation Sent", `Simulated WhatsApp dispatch to ${customPhone} (DRY RUN)`);
         } else {
@@ -67,16 +123,12 @@ export function WhatsAppPreviewModal({ lead, isOpen, onClose, onSuccess }: Whats
         if (onSuccess) onSuccess();
         onClose();
       } else {
-        // Ensure error is always a string (never [object Object])
-        const errMsg = typeof res.error === "string" ? res.error
-          : res.error ? JSON.stringify(res.error)
-          : "Failed to dispatch WhatsApp message.";
-        toast.error("Delivery Failed", errMsg);
+        const serverMessage = (res && (res as any).error) || "Failed to send WhatsApp message.";
+        toast.error("Delivery Failed", normalizeErrorMessage(serverMessage));
       }
     } catch (err: any) {
-      const errMsg = typeof err?.message === "string" ? err.message
-        : err ? String(err) : "Failed to send WhatsApp message.";
-      toast.error("Send Error", errMsg);
+      const message = err?.message ?? err;
+      toast.error("Send Error", normalizeErrorMessage(message));
     } finally {
       setIsSending(false);
     }
@@ -109,6 +161,11 @@ export function WhatsAppPreviewModal({ lead, isOpen, onClose, onSuccess }: Whats
               <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
                 <MessageSquare className="w-3 h-3 text-emerald-400" /> WhatsApp Ready
               </span>
+            </div>
+
+            <div className="text-[11px] text-slate-400">
+              Active outreach template: <span className="font-semibold text-slate-200">{preview.templateTarget}</span>
+              {preview.includeResume ? " · Resume will be attached" : " · No resume attachment"}
             </div>
 
             <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">

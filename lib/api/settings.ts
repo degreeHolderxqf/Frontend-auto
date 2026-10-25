@@ -15,6 +15,26 @@ export async function updateSettings(
   });
 }
 
+export async function uploadResume(
+  file: File
+): Promise<{ success: boolean; message: string; settings: AppSettings }> {
+  const reader = new FileReader();
+  const base64 = await new Promise<string>((resolve, reject) => {
+    reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  return apiClient("/api/upload-resume", {
+    method: "POST",
+    body: JSON.stringify({ file: base64, filename: file.name })
+  });
+}
+
+export async function removeResume(): Promise<{ success: boolean; message: string; settings: AppSettings }> {
+  return apiClient("/api/remove-resume", { method: "POST" });
+}
+
 export async function testSmtpConnection(
   smtpConfig: Partial<AppSettings>
 ): Promise<{

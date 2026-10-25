@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const RENDER_BACKEND_URL = "https://auto-1-66jv.onrender.com";
+const DEFAULT_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://auto-rho-peach.vercel.app";
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
   const { path } = await params;
   const targetPath = path.join("/");
   const search = request.nextUrl.search;
-  const targetUrl = `${RENDER_BACKEND_URL}/${targetPath}${search}`;
+  const targetUrl = `${DEFAULT_BACKEND_URL}/${targetPath}${search}`;
 
   try {
     const controller = new AbortController();
@@ -38,7 +38,7 @@ export async function GET(
     });
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to reach Render backend" },
+      { success: false, error: error.message || "Failed to reach the configured Vercel backend" },
       { status: 502 }
     );
   }
@@ -50,7 +50,7 @@ export async function POST(
 ) {
   const { path } = await params;
   const targetPath = path.join("/");
-  const targetUrl = `${RENDER_BACKEND_URL}/${targetPath}`;
+  const targetUrl = `${DEFAULT_BACKEND_URL}/${targetPath}`;
 
   try {
     const body = await request.text();
@@ -82,7 +82,7 @@ export async function POST(
     });
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to reach Render backend" },
+      { success: false, error: error.message || "Failed to reach the configured Vercel backend" },
       { status: 502 }
     );
   }

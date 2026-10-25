@@ -1,27 +1,25 @@
-// Live Render Production Backend URL (Universal)
-export const RENDER_BACKEND_URL = "https://auto-1-66jv.onrender.com";
+const DEFAULT_LOCAL_BACKEND_URL = "http://localhost:3000";
+const DEFAULT_PRODUCTION_BACKEND_URL = "https://auto-rho-peach.vercel.app";
+
+const isLocalHost = (): boolean =>
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+export const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (isLocalHost() ? DEFAULT_LOCAL_BACKEND_URL : DEFAULT_PRODUCTION_BACKEND_URL);
 
 export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    // Check for environment variable override
-    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    const envUrl = process.env.NEXT_PUBLIC_API_URL || localStorage.getItem("CUSTOM_API_URL");
     if (envUrl) {
       return envUrl.replace(/\/$/, "");
     }
 
-    const saved = localStorage.getItem("CUSTOM_API_URL");
-    if (saved && !saved.includes("localhost") && !saved.includes("127.0.0.1")) {
-      return saved.replace(/\/$/, "");
-    }
-    if (saved && (saved.includes("localhost") || saved.includes("127.0.0.1"))) {
-      localStorage.removeItem("CUSTOM_API_URL");
-    }
-
-    // On Vercel / browser: use the Next.js API proxy route for zero CORS/latency issues
-    return "/api/proxy";
+    return isLocalHost() ? DEFAULT_LOCAL_BACKEND_URL : "/api/proxy";
   }
 
-  return RENDER_BACKEND_URL;
+  return process.env.NEXT_PUBLIC_API_URL || DEFAULT_PRODUCTION_BACKEND_URL;
 }
 
 export function setCustomApiUrl(url: string) {
@@ -37,6 +35,39 @@ export function setCustomApiUrl(url: string) {
 interface FetchOptions extends RequestInit {
   timeout?: number;
   retries?: number;
+}
+
+function extractErrorMessage(payload: unknown): string | null {
+  if (payload == null) return null;
+
+  if (typeof payload === "string") return payload.trim() || null;
+  if (payload instanceof Error) return payload.message || null;
+
+  if (typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    const candidates = [
+      record.message,
+      record.error,
+      record.details,
+      record.reason,
+      record.description,
+      record.statusText,
+    ];
+
+    for (const candidate of candidates) {
+      const message = extractErrorMessage(candidate);
+      if (message) return message;
+    }
+
+    try {
+      const json = JSON.stringify(payload);
+      return json && json !== "{}" && json !== "[]" ? json : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return String(payload);
 }
 
 export async function apiClient<T>(
@@ -81,14 +112,9 @@ export async function apiClient<T>(
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         try {
           const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = typeof errorData.error === "string"
-              ? errorData.error
-              : JSON.stringify(errorData.error);
-          } else if (errorData.message) {
-            errorMessage = typeof errorData.message === "string"
-              ? errorData.message
-              : JSON.stringify(errorData.message);
+          const extracted = extractErrorMessage(errorData?.error ?? errorData?.message ?? errorData);
+          if (extracted) {
+            errorMessage = extracted;
           }
         } catch {
           // response wasn't JSON - keep HTTP status error message
@@ -106,9 +132,9 @@ export async function apiClient<T>(
       clearTimeout(timeoutId);
       lastError = error;
 
-      // Fallback from proxy to direct Render URL on retry
+      // Fallback from proxy to the production Vercel backend on retry
       if (attempt === 0 && url.startsWith("/api/proxy")) {
-        url = `${RENDER_BACKEND_URL}/${cleanEndpoint}`;
+        url = `${DEFAULT_PRODUCTION_BACKEND_URL}/${cleanEndpoint}`;
         await new Promise((r) => setTimeout(r, 1000));
         continue;
       }
@@ -121,10 +147,10 @@ export async function apiClient<T>(
   }
 
   if (lastError?.name === "AbortError") {
-    throw new Error(`Request timed out. Render backend is warming up (takes ~30-40s on first load).`);
+    throw new Error("Request timed out while reaching the backend. The server may be busy or unreachable — try again, or resume the batch from the Outreach page.");
   }
   if (lastError?.message === "Failed to fetch" || lastError?.name === "TypeError") {
-    throw new Error(`Unable to connect to Render backend at ${RENDER_BACKEND_URL}.`);
+    throw new Error(`Unable to connect to the configured backend at ${DEFAULT_PRODUCTION_BACKEND_URL}. Check your network and the backend URL in Settings.`);
   }
   throw lastError;
 }

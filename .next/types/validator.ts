@@ -101,10 +101,82 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/remote-jobs/applications/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs/applications">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/applications/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/remote-jobs/discover/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs/discover">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/discover/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/remote-jobs/logs/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs/logs">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/logs/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/remote-jobs/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/remote-jobs/ready/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs/ready">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/ready/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/remote-jobs/saved/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs/saved">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/saved/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/remote-jobs/settings/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/remote-jobs/settings">> = Specific
+  const handler = {} as typeof import("../../app/remote-jobs/settings/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/settings/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/settings">> = Specific
   const handler = {} as typeof import("../../app/settings/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/templates/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/templates">> = Specific
+  const handler = {} as typeof import("../../app/templates/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

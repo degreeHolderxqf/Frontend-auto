@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { fetchStats } from "@/lib/api/stats";
-import { fetchLeads } from "@/lib/api/leads";
-import { CampaignStats, Lead } from "@/types";
+import { fetchDashboardMetricRecords, fetchLeads } from "@/lib/api/leads";
+import { CampaignStats, DashboardMetricKey, DashboardMetricRecord, Lead } from "@/types";
 import { StatGrid } from "@/components/dashboard/StatGrid";
 import { PipelineStatus } from "@/components/dashboard/PipelineStatus";
 import { QuickActions } from "@/components/dashboard/QuickActions";
@@ -15,17 +15,32 @@ import { WhatsAppPreviewModal } from "@/components/leads/WhatsAppPreviewModal";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import { ArrowRight, RefreshCw, X } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<CampaignStats | null>(null);
   const [topLeads, setTopLeads] = useState<Lead[]>([]);
+  const [selectedMetric, setSelectedMetric] = useState<DashboardMetricKey | null>(null);
+  const [metricRecords, setMetricRecords] = useState<DashboardMetricRecord[]>([]);
+  const [isMetricLoading, setIsMetricLoading] = useState(false);
+  const [metricError, setMetricError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [previewLead, setPreviewLead] = useState<Lead | null>(null);
   const [previewWhatsAppLead, setPreviewWhatsAppLead] = useState<Lead | null>(null);
+  const metricRequestId = useRef(0);
   const toast = useToast();
+
+  const metricTitles: Record<DashboardMetricKey, string> = {
+    discovered: "Total Discovered",
+    merchantContacts: "Merchant Stores With Contacts",
+    employeeVerified: "Employee Size Verified",
+    emailContacts: "Email Contact Records",
+    readyToSend: "Ready for Outreach",
+    emailsSent: "Emails Sent",
+    excludedTooLow: "Excluded / Too Low",
+  };
 
   const loadData = async () => {
     try {
@@ -46,6 +61,47 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const loadMetricRecords = async (metric: DashboardMetricKey, requestId: number) => {
+    setIsMetricLoading(true);
+    setMetricError(null);
+    try {
+      const records = await fetchDashboardMetricRecords(metric);
+      if (requestId === metricRequestId.current) setMetricRecords(records);
+    } catch (err: any) {
+      if (requestId === metricRequestId.current) {
+        const message = err.message || "Failed to load matching records.";
+        setMetricError(message);
+        toast.error("Could not load metric records", message);
+      }
+    } finally {
+      if (requestId === metricRequestId.current) setIsMetricLoading(false);
+    }
+  };
+
+  const handleSelectMetric = (metric: DashboardMetricKey) => {
+    const requestId = ++metricRequestId.current;
+    if (selectedMetric === metric) {
+      setSelectedMetric(null);
+      setMetricRecords([]);
+      setMetricError(null);
+      setIsMetricLoading(false);
+      return;
+    }
+
+    setSelectedMetric(metric);
+    setMetricRecords([]);
+    setMetricError(null);
+    void loadMetricRecords(metric, requestId);
+  };
+
+  const closeMetricRecords = () => {
+    metricRequestId.current += 1;
+    setSelectedMetric(null);
+    setMetricRecords([]);
+    setMetricError(null);
+    setIsMetricLoading(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -71,7 +127,57 @@ export default function DashboardPage() {
       </div>
 
       {/* Metrics Grid */}
-      <StatGrid stats={stats} isLoading={isLoading} />
+      <StatGrid
+        stats={stats}
+        isLoading={isLoading}
+        selectedMetric={selectedMetric}
+        onSelectMetric={handleSelectMetric}
+      />
+
+      {selectedMetric && (
+        <Card className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 p-5 border-b border-slate-800">
+            <div>
+              <CardTitle>{metricTitles[selectedMetric]}</CardTitle>
+              <p className="text-xs text-slate-400 mt-1">
+                {isMetricLoading ? "Loading records…" : metricError ? "Could not load records" : `${metricRecords.length} matching record(s)`}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={closeMetricRecords} aria-label="Close metric records">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          {isMetricLoading ? (
+            <div className="p-10 text-center text-sm text-slate-400">Loading matching records…</div>
+          ) : metricError ? (
+            <div className="p-10 text-center">
+              <p className="text-sm font-semibold text-rose-300">Could not load these records</p>
+              <p className="text-xs text-slate-400 mt-2">{metricError}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => {
+                  const requestId = ++metricRequestId.current;
+                  void loadMetricRecords(selectedMetric, requestId);
+                }}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : metricRecords.length > 0 ? (
+            <LeadsTable
+              leads={metricRecords}
+              onSelectLead={(lead) => setSelectedLead(lead)}
+            />
+          ) : (
+            <div className="p-10 text-center">
+              <p className="text-sm font-semibold text-slate-200">No records for this metric</p>
+              <p className="text-xs text-slate-500 mt-1">The current database has no matching entries.</p>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* WhatsApp Connection Widget + Quick Action Triggers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

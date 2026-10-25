@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchHealth } from "@/lib/api/stats";
-import { fetchSettings, updateSettings, testSmtpConnection } from "@/lib/api/settings";
+import { fetchSettings, updateSettings, testSmtpConnection, uploadResume, removeResume } from "@/lib/api/settings";
 import { testEvolutionApi } from "@/lib/api/whatsapp";
-import { RENDER_BACKEND_URL } from "@/lib/api/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -27,7 +26,10 @@ import {
   MessageSquare,
   HelpCircle,
   Sliders,
-  Zap
+  Zap,
+  Briefcase,
+  TrendingUp,
+  FileText
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -35,6 +37,8 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [resumeValidationError, setResumeValidationError] = useState<string | null>(null);
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string; code?: string } | null>(null);
   const [isTestingEvolution, setIsTestingEvolution] = useState(false);
@@ -68,6 +72,65 @@ export default function SettingsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleResumeUpload = async (file: File) => {
+    setResumeValidationError(null);
+
+    // Validate extension
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setResumeValidationError("Only PDF files are supported. Please select a .pdf file.");
+      toast.error("Invalid File Type", "Only PDF files are supported.");
+      return;
+    }
+
+    // Validate MIME type
+    if (file.type && file.type !== "application/pdf" && file.type !== "application/octet-stream") {
+      setResumeValidationError(`Unsupported file type: ${file.type}. Only PDF is allowed.`);
+      toast.error("Invalid File Type", `Only PDF files are supported. Detected: ${file.type}`);
+      return;
+    }
+
+    const MAX_SIZE_MB = 10;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setResumeValidationError(`File size exceeds ${MAX_SIZE_MB}MB limit. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB.`);
+      toast.error("File Too Large", `Maximum file size is ${MAX_SIZE_MB}MB.`);
+      return;
+    }
+
+    try {
+      setIsUploadingResume(true);
+      const res = await uploadResume(file);
+      if (res.success) {
+        setSettings(res.settings);
+        setResumeValidationError(null);
+        toast.success("Resume Uploaded", `${file.name} uploaded successfully.`);
+      } else {
+        setResumeValidationError(res.message || "Upload failed.");
+        toast.error("Upload Failed", res.message || "Failed to upload resume.");
+      }
+    } catch (err: any) {
+      const message = err?.message || "Failed to upload resume. Check that the backend is running and resume storage is configured.";
+      setResumeValidationError(message);
+      toast.error("Upload Failed", message);
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
+  const handleRemoveResume = async () => {
+    try {
+      const res = await removeResume();
+      if (res.success) {
+        setSettings(res.settings);
+        setResumeValidationError(null);
+        toast.info("Resume Removed", "Reverted to RESUME_PATH from environment configuration.");
+      } else {
+        toast.error("Remove Failed", res.message || "Failed to remove resume.");
+      }
+    } catch (err: any) {
+      toast.error("Remove Failed", err.message || "Failed to remove resume.");
+    }
+  };
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -265,7 +328,7 @@ export default function SettingsPage() {
             System & User Settings
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Configure SMTP credentials, candidate outreach profile, employee verification rules, and lead discovery parameters.
+            Configure SMTP credentials, candidate outreach profile, employee verification, lead discovery, and remote job parameters.
           </p>
         </div>
 
@@ -374,6 +437,51 @@ export default function SettingsPage() {
                     placeholder="Liquid, Theme Customization&#10;Node.js, React, Remix&#10;Shopify GraphQL & REST APIs"
                     className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 font-mono text-xs focus:border-sky-500 focus:outline-none"
                   />
+                </div>
+
+                {/* Resume field */}
+                <div className="space-y-2 p-3 rounded-lg bg-slate-950 border border-slate-800">
+                  <label className="text-slate-400 font-semibold block mb-0.5">
+                    Resume
+                  </label>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-300">
+                    <FileText className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                    <span className="truncate font-mono">
+                      {settings.resumeFilename || "No resume selected — using RESUME_PATH from .env"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-semibold cursor-pointer hover:bg-slate-700 transition-colors">
+                      {isUploadingResume ? "Uploading..." : "Choose Resume"}
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        disabled={isUploadingResume}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleResumeUpload(file);
+                          e.target.value = "";
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {settings.resumeFilename && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveResume}
+                        disabled={isUploadingResume}
+                        className="px-3 py-1.5 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-[11px] font-semibold hover:bg-rose-900/60 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-500">Supported format: PDF (max 10MB)</p>
+                  {resumeValidationError && (
+                    <div className="p-2 rounded-lg bg-rose-950/60 border border-rose-800/60 text-rose-300 text-[11px]">
+                      {resumeValidationError}
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
@@ -618,6 +726,171 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 )}
+              </div>
+            </Card>
+
+            {/* 4b. Shopify App Store Discovery Settings */}
+            <Card className="p-6 space-y-4">
+              <CardHeader className="p-0 pb-3 border-none flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-purple-400" />
+                  <CardTitle>Shopify App Store Discovery</CardTitle>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                  settings.appStoreDiscoveryEnabled !== false
+                    ? "text-purple-400 bg-purple-950/80 border-purple-800"
+                    : "text-slate-400 bg-slate-900 border-slate-800"
+                }`}>
+                  {settings.appStoreDiscoveryEnabled !== false ? "Enabled" : "Disabled"}
+                </span>
+              </CardHeader>
+
+              <div className="space-y-3.5 text-xs text-slate-300">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
+                  <div>
+                    <p className="font-semibold text-slate-200">Enable App Store Discovery</p>
+                    <p className="text-[11px] text-slate-400">
+                      Enable discovery from Shopify App Store in addition to Partner Directory.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.appStoreDiscoveryEnabled !== false}
+                    onChange={(e) => setSettings({ ...settings, appStoreDiscoveryEnabled: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
+                  <div>
+                    <p className="font-semibold text-slate-200">India-Only Developers</p>
+                    <p className="text-[11px] text-slate-400">
+                      Filter for apps built by developers based in India (not just apps supporting India).
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.appStoreIndiaOnly !== false}
+                    onChange={(e) => setSettings({ ...settings, appStoreIndiaOnly: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 font-semibold block mb-1">Max Apps to Discover:</label>
+                    <input
+                      type="number"
+                      min={10}
+                      max={500}
+                      value={settings.appStoreMaxApps || 200}
+                      onChange={(e) => setSettings({ ...settings, appStoreMaxApps: parseInt(e.target.value, 10) || 200 })}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 font-semibold block mb-1">Max Detail Fetches:</label>
+                    <input
+                      type="number"
+                      min={10}
+                      max={100}
+                      value={settings.appStoreMaxDetailFetches || 50}
+                      onChange={(e) => setSettings({ ...settings, appStoreMaxDetailFetches: parseInt(e.target.value, 10) || 50 })}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-0.5">Detail fetches per batch (for location)</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-purple-950/30 border border-purple-900/50">
+                  <p className="text-[11px] text-purple-300">
+                    <strong>Note:</strong> App Store discovery finds apps built by Indian developers. One developer can have multiple apps.
+                    Companies are deduplicated across both Partner Directory and App Store sources.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* 4c. Remote Job Opportunity Discovery */}
+            <Card className="p-6 space-y-4">
+              <CardHeader className="p-0 pb-3 border-none flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-sky-400" />
+                  <CardTitle>Remote Job Discovery</CardTitle>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                  settings.remoteJobDiscoveryEnabled !== false
+                    ? "text-sky-400 bg-sky-950/80 border-sky-800"
+                    : "text-slate-400 bg-slate-900 border-slate-800"
+                }`}>
+                  {settings.remoteJobDiscoveryEnabled !== false ? "Enabled" : "Disabled"}
+                </span>
+              </CardHeader>
+
+              <div className="space-y-3.5 text-xs text-slate-300">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
+                  <div>
+                    <p className="font-semibold text-slate-200">Enable Remote Job Discovery</p>
+                    <p className="text-[11px] text-slate-400">
+                      Fetch jobs from Himalayas, Greenhouse, Lever, WWR, Wellfound, and Shopify Plus agencies.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.remoteJobDiscoveryEnabled !== false}
+                    onChange={(e) => setSettings({ ...settings, remoteJobDiscoveryEnabled: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-sky-500 focus:ring-sky-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 font-semibold block mb-1">Min Relevance Score:</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={settings.minRemoteJobRelevanceScore || 60}
+                      onChange={(e) => setSettings({ ...settings, minRemoteJobRelevanceScore: parseInt(e.target.value, 10) || 60 })}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-0.5">Jobs below this score are low relevance</p>
+                  </div>
+                  <div>
+                    <label className="text-slate-400 font-semibold block mb-1">Max Jobs Per Source:</label>
+                    <input
+                      type="number"
+                      min={10}
+                      max={500}
+                      value={settings.maxRemoteJobsPerSource || 100}
+                      onChange={(e) => setSettings({ ...settings, maxRemoteJobsPerSource: parseInt(e.target.value, 10) || 100 })}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-0.5">Cap per discovery run</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800">
+                  <div>
+                    <p className="font-semibold text-slate-200">Require Manual Review Before Apply</p>
+                    <p className="text-[11px] text-slate-400">
+                      When enabled (recommended), auto-apply is OFF — you review each application before submission.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.autoApplyDefault === false}
+                    onChange={(e) => setSettings({ ...settings, autoApplyDefault: !e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-3 rounded-lg bg-sky-950/30 border border-sky-900/50">
+                  <p className="text-[11px] text-sky-300">
+                    <strong>Profile Focus:</strong> Shopify Developer, Full-Stack Web Developer, Liquid, Theme Dev, Remix, React, Node.js, GraphQL, Storefront/Admin APIs, Checkout Extensibility.
+                    Target: <strong>Remote India-compatible, or Worldwide Remote allowing India.</strong>
+                  </p>
+                </div>
               </div>
             </Card>
 

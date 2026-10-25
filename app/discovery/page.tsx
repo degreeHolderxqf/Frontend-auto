@@ -34,9 +34,9 @@ export default function DiscoveryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 tracking-tight">Partner Discovery Engine</h2>
+          <h2 className="text-xl font-bold text-slate-100 tracking-tight">Discovery Engine</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Automated crawler for official Shopify Partner Directory (India) with pagination & rate limiting.
+            Primary: Shopify App Store (app developers) — Secondary: Partner Directory (service agencies).
           </p>
         </div>
 
@@ -60,9 +60,9 @@ export default function DiscoveryPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
           <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-            <span className="font-bold text-sky-400 block">1. Directory Pagination</span>
+            <span className="font-bold text-purple-400 block">1. Two Discovery Sources</span>
             <p className="text-slate-400 text-[11px] leading-relaxed">
-              Fetches 16 cards per page from <code>/in/partners/directory/locations/india</code>, extracts company name, partner tier, rating, and official profile URLs.
+              Primary: <strong>Shopify App Store</strong> (app developers). Secondary: <strong>Partner Directory</strong> (agencies). App Store is India-only by default.
             </p>
           </div>
 

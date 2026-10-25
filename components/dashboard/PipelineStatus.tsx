@@ -1,14 +1,14 @@
 import React from "react";
 import { CampaignStats } from "@/types";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Database, Filter, Search, CheckCircle2, Send } from "lucide-react";
+import { Database, Filter, Search, CheckCircle2, Send, ShoppingBag, Building2 } from "lucide-react";
 
 export function PipelineStatus({ stats }: { stats: CampaignStats | null }) {
   const steps = [
     {
       label: "Discovery",
       count: stats?.totalDiscovered ?? 0,
-      desc: "Raw directory cards",
+      desc: "Partner, app, and merchant records",
       icon: Database,
     },
     {
@@ -26,7 +26,7 @@ export function PipelineStatus({ stats }: { stats: CampaignStats | null }) {
     {
       label: "Scored & Ready",
       count: stats?.readyToSend ?? 0,
-      desc: "App score & contact ready",
+      desc: "Uncontacted email contacts",
       icon: CheckCircle2,
     },
     {
@@ -36,6 +36,13 @@ export function PipelineStatus({ stats }: { stats: CampaignStats | null }) {
       icon: Send,
     },
   ];
+
+  // Build source breakdown from bySource array
+  const sourceBreakdown = stats?.bySource ?? [];
+  const appStoreCount = sourceBreakdown.find((s) => s.source === "SHOPIFY_APP_STORE")?.count ?? 0;
+  const partnerCount = sourceBreakdown.find((s) => s.source === "SHOPIFY_PARTNER_DIRECTORY")?.count ?? 0;
+  const merchantCount = sourceBreakdown.find((s) => s.source === "MERCHANT_UPLOAD")?.count ?? 0;
+  const totalFromBreakdown = sourceBreakdown.reduce((sum, s) => sum + s.count, 0);
 
   return (
     <Card className="p-6">
@@ -71,6 +78,39 @@ export function PipelineStatus({ stats }: { stats: CampaignStats | null }) {
           );
         })}
       </div>
+
+      {/* Source Breakdown */}
+      {totalFromBreakdown > 0 && (
+        <div className="mt-5 pt-5 border-t border-slate-800">
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">
+            Source Breakdown
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-950/40 border border-purple-900/60">
+              <ShoppingBag className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-xs font-bold text-purple-300">
+                App Store: {appStoreCount}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-950/40 border border-sky-900/60">
+              <Building2 className="w-3.5 h-3.5 text-sky-400" />
+              <span className="text-xs font-bold text-sky-300">
+                Partner Directory: {partnerCount}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-950/40 border border-emerald-900/60">
+              <span className="text-xs font-bold text-emerald-300">
+                Merchant Stores: {merchantCount}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900/60 border border-slate-800">
+              <span className="text-xs font-bold text-slate-400">
+                Total: {totalFromBreakdown}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

@@ -49,6 +49,7 @@ export function EmailPreviewModal({ lead, isOpen, onClose, onSuccess }: EmailPre
       const res = await sendOutreachEmails({
         leadIds: [lead.id],
         dryRun: false,
+        templateId: preview?.templateId,
       });
       toast.success("Email Sent", `Personalized email dispatched to ${preview?.to}`);
       if (onSuccess) onSuccess();
@@ -67,6 +68,7 @@ export function EmailPreviewModal({ lead, isOpen, onClose, onSuccess }: EmailPre
       await sendOutreachEmails({
         leadIds: [lead.id],
         dryRun: true,
+        templateId: preview?.templateId,
       });
       toast.info("Simulation Successful", `Simulated email sending to ${preview?.to}`);
       if (onSuccess) onSuccess();
@@ -83,7 +85,7 @@ export function EmailPreviewModal({ lead, isOpen, onClose, onSuccess }: EmailPre
       isOpen={isOpen}
       onClose={onClose}
       title="Personalized Outreach Email Preview"
-      description={`Generated tailored application for ${lead?.name || "Company"}`}
+      description={`Preview of the selected outreach template for ${lead?.name || "Company"}`}
       maxWidth="2xl"
     >
       {isLoading || !preview ? (
@@ -111,6 +113,10 @@ export function EmailPreviewModal({ lead, isOpen, onClose, onSuccess }: EmailPre
               <span className="text-slate-400 font-semibold">Subject:</span>
               <span className="text-slate-100 font-medium">{preview.subject}</span>
             </div>
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+              <span className="text-slate-400 font-semibold">Template:</span>
+              <span className="text-slate-100 font-medium">{preview.templateTarget}</span>
+            </div>
           </div>
 
           {/* Body Preview */}
@@ -120,16 +126,22 @@ export function EmailPreviewModal({ lead, isOpen, onClose, onSuccess }: EmailPre
             </pre>
           </div>
 
-          {/* Attachment Pill */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900/80 border border-slate-800">
-            <div className="flex items-center gap-2 text-slate-300">
-              <FileText className="w-4 h-4 text-emerald-400" />
-              <span className="font-medium text-[11px]">{preview.resumeAttachment}</span>
+          {preview.resumeAttachment ? (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900/80 border border-slate-800">
+              <div className="flex items-center gap-2 text-slate-300">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                <span className="font-medium text-[11px]">{preview.resumeAttachment}</span>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Auto-Attached PDF
+              </span>
             </div>
-            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Auto-Attached PDF
-            </span>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              Portfolio link included · No resume/CV attached
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
