@@ -14,11 +14,12 @@ export async function GET(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 40000);
+    const headers = new Headers({ Accept: "application/json" });
+    const cookie = request.headers.get("cookie");
+    if (cookie) headers.set("Cookie", cookie);
 
     const response = await fetch(targetUrl, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers,
       signal: controller.signal,
       cache: "no-store",
     });
@@ -27,14 +28,16 @@ export async function GET(
 
     const contentType = response.headers.get("content-type") || "application/json";
     const data = await response.text();
+    const responseHeaders = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    });
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) responseHeaders.set("Set-Cookie", setCookie);
 
     return new NextResponse(data, {
       status: response.status,
-      headers: {
-        "Content-Type": contentType,
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-      },
+      headers: responseHeaders,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -56,13 +59,16 @@ export async function POST(
     const body = await request.text();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    });
+    const cookie = request.headers.get("cookie");
+    if (cookie) headers.set("Cookie", cookie);
 
     const response = await fetch(targetUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
+      headers,
       body: body || "{}",
       signal: controller.signal,
       cache: "no-store",
@@ -72,13 +78,13 @@ export async function POST(
 
     const contentType = response.headers.get("content-type") || "application/json";
     const data = await response.text();
+    const responseHeaders = new Headers({ "Content-Type": contentType, "Cache-Control": "no-store" });
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) responseHeaders.set("Set-Cookie", setCookie);
 
     return new NextResponse(data, {
       status: response.status,
-      headers: {
-        "Content-Type": contentType,
-        "Access-Control-Allow-Origin": "*",
-      },
+      headers: responseHeaders,
     });
   } catch (error: any) {
     return NextResponse.json(

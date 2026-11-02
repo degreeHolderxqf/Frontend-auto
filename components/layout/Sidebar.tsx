@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   Briefcase,
   FileText,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/api/client";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Qualified Leads", href: "/leads", icon: Users },
   { label: "Email Outreach", href: "/outreach", icon: Send },
+  { label: "Store Performance Audits", href: "/store-audits", icon: Gauge },
   { label: "Email Templates", href: "/templates", icon: FileText },
   { label: "Partner Discovery", href: "/discovery", icon: Compass },
   { label: "All Companies", href: "/companies", icon: Building2 },

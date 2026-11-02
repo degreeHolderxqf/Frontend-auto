@@ -45,7 +45,9 @@ export function StatGrid({ stats, isLoading, selectedMetric, onSelectMetric }: S
       key: "employeeVerified",
       title: "Employee Size Verified",
       value: stats?.employeeVerified ?? stats?.qualified ?? "—",
-      sub: "≥ 30 Employees verified",
+      sub: stats?.minEmployeeCount
+        ? `≥ ${stats.minEmployeeCount} employees verified`
+        : "Employee-size filter disabled",
       icon: UserCheck,
       color: "text-emerald-400",
       iconColor: "text-emerald-400",

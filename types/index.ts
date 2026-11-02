@@ -5,6 +5,7 @@ export interface CampaignStats {
   excludedOrTooLow?: number;
   duplicates: number;
   employeeVerified?: number;
+  minEmployeeCount?: number | null;
   employeeTooLow?: number;
   employeeUncertain?: number;
   employeeConflicting?: number;

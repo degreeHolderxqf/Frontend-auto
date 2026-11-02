@@ -1,3 +1,4 @@
 {
-  "/leads/page": "app/leads/page.js"
+  "/api/proxy/[...path]/route": "app/api/proxy/[...path]/route.js",
+  "/page": "app/page.js"
 }
