@@ -11,12 +11,15 @@ export const BACKEND_URL =
 
 export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    const envUrl = process.env.NEXT_PUBLIC_API_URL || localStorage.getItem("CUSTOM_API_URL");
-    if (envUrl) {
-      return envUrl.replace(/\/$/, "");
+    if (isLocalHost()) {
+      const customApiUrl = localStorage.getItem("CUSTOM_API_URL");
+      if (customApiUrl) {
+        return customApiUrl.replace(/\/$/, "");
+      }
+      return (process.env.NEXT_PUBLIC_API_URL || DEFAULT_LOCAL_BACKEND_URL).replace(/\/$/, "");
     }
 
-    return isLocalHost() ? DEFAULT_LOCAL_BACKEND_URL : "/api/proxy";
+    return "/api/proxy";
   }
 
   return process.env.NEXT_PUBLIC_API_URL || DEFAULT_PRODUCTION_BACKEND_URL;
@@ -131,13 +134,6 @@ export async function apiClient<T>(
     } catch (error: any) {
       clearTimeout(timeoutId);
       lastError = error;
-
-      // Fallback from proxy to the production Vercel backend on retry
-      if (attempt === 0 && url.startsWith("/api/proxy")) {
-        url = `${DEFAULT_PRODUCTION_BACKEND_URL}/${cleanEndpoint}`;
-        await new Promise((r) => setTimeout(r, 1000));
-        continue;
-      }
 
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, 2000));

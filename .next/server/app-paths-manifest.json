@@ -1,7 +1,24 @@
 {
-  "/page": "app/page.js",
+  "/api/proxy/[...path]/route": "app/api/proxy/[...path]/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/account/page": "app/account/page.js",
+  "/discovery/page": "app/discovery/page.js",
+  "/companies/page": "app/companies/page.js",
+  "/exclusions/page": "app/exclusions/page.js",
+  "/leads/page": "app/leads/page.js",
   "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/outreach/page": "app/outreach/page.js",
+  "/remote-jobs/applications/page": "app/remote-jobs/applications/page.js",
+  "/remote-jobs/discover/page": "app/remote-jobs/discover/page.js",
+  "/remote-jobs/logs/page": "app/remote-jobs/logs/page.js",
+  "/remote-jobs/page": "app/remote-jobs/page.js",
+  "/remote-jobs/ready/page": "app/remote-jobs/ready/page.js",
+  "/remote-jobs/saved/page": "app/remote-jobs/saved/page.js",
+  "/remote-jobs/settings/page": "app/remote-jobs/settings/page.js",
   "/reset-password/page": "app/reset-password/page.js",
-  "/verify-email/page": "app/verify-email/page.js",
-  "/account/page": "app/account/page.js"
+  "/settings/page": "app/settings/page.js",
+  "/store-audits/page": "app/store-audits/page.js",
+  "/templates/page": "app/templates/page.js",
+  "/verify-email/page": "app/verify-email/page.js"
 }

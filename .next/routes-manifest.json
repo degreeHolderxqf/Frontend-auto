@@ -1,1 +1,176 @@
-{"version":3,"caseSensitive":false,"basePath":"","rewrites":{"beforeFiles":[],"afterFiles":[],"fallback":[]},"redirects":[{"source":"/:path+/","destination":"/:path+","permanent":true,"internal":true,"regex":"^(?:\\/((?:[^\\/]+?)(?:\\/(?:[^\\/]+?))*))\\/$"}],"headers":[]}
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/proxy/[...path]",
+      "regex": "^/api/proxy/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPpath": "nxtPpath"
+      },
+      "namedRegex": "^/api/proxy/(?<nxtPpath>.+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/account",
+      "regex": "^/account(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/account(?:/)?$"
+    },
+    {
+      "page": "/companies",
+      "regex": "^/companies(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/companies(?:/)?$"
+    },
+    {
+      "page": "/discovery",
+      "regex": "^/discovery(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/discovery(?:/)?$"
+    },
+    {
+      "page": "/exclusions",
+      "regex": "^/exclusions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/exclusions(?:/)?$"
+    },
+    {
+      "page": "/leads",
+      "regex": "^/leads(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/leads(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/outreach",
+      "regex": "^/outreach(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/outreach(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs",
+      "regex": "^/remote\\-jobs(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs/applications",
+      "regex": "^/remote\\-jobs/applications(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs/applications(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs/discover",
+      "regex": "^/remote\\-jobs/discover(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs/discover(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs/logs",
+      "regex": "^/remote\\-jobs/logs(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs/logs(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs/ready",
+      "regex": "^/remote\\-jobs/ready(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs/ready(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs/saved",
+      "regex": "^/remote\\-jobs/saved(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs/saved(?:/)?$"
+    },
+    {
+      "page": "/remote-jobs/settings",
+      "regex": "^/remote\\-jobs/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/remote\\-jobs/settings(?:/)?$"
+    },
+    {
+      "page": "/reset-password",
+      "regex": "^/reset\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reset\\-password(?:/)?$"
+    },
+    {
+      "page": "/settings",
+      "regex": "^/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/settings(?:/)?$"
+    },
+    {
+      "page": "/store-audits",
+      "regex": "^/store\\-audits(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/store\\-audits(?:/)?$"
+    },
+    {
+      "page": "/templates",
+      "regex": "^/templates(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/templates(?:/)?$"
+    },
+    {
+      "page": "/verify-email",
+      "regex": "^/verify\\-email(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/verify\\-email(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}
